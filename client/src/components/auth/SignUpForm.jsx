@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios'; // ✅ 1. Import axios
 import { User, Mail, Lock, Check } from 'lucide-react';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
@@ -60,11 +61,21 @@ const SignUpForm = () => {
     setIsLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setOtpSent(true);
-      setFormStage('otp');
+      // ✅ 2. Call your backend to send OTP
+      const response = await axios.post('/api/send-otp', {
+        email: formData.email,
+        displayName: formData.displayName,
+      });
+
+      if (response.data.success) {
+        setOtpSent(true);
+        setFormStage('otp');
+      } else {
+        alert(response.data.message || 'Failed to send OTP');
+      }
     } catch (error) {
       console.error('Failed to send OTP:', error);
+      alert('Error sending OTP. Try again.');
     } finally {
       setIsLoading(false);
     }
@@ -74,10 +85,22 @@ const SignUpForm = () => {
     setIsLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setFormStage('completed');
+      // ✅ 3. Call your backend to verify OTP and register user
+      const response = await axios.post('/api/verify-otp', {
+        otp,
+        email: formData.email,
+        password: formData.password,
+        displayName: formData.displayName,
+      });
+
+      if (response.data.success) {
+        setFormStage('completed');
+      } else {
+        alert(response.data.message || 'Invalid OTP');
+      }
     } catch (error) {
       console.error('Failed to verify OTP:', error);
+      alert('Error verifying OTP. Try again.');
     } finally {
       setIsLoading(false);
     }
@@ -152,7 +175,7 @@ const SignUpForm = () => {
         onInvalid={() => console.log('Invalid OTP input')}
       />
       <p className="text-sm text-gray-400 text-center">
-        Didn't receive the code? <button className="text-indigo-400 hover:text-indigo-300 underline">Resend</button>
+        Didn't receive the code? <button className="text-indigo-400 hover:text-indigo-300 underline" onClick={handleSendOtp}>Resend</button>
       </p>
     </div>
   );
