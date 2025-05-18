@@ -54,7 +54,7 @@ const Profile = ({
             type="button"
             className="hover:bg-indigo-100/10 rounded-full p-2 transition"
             aria-label="Open cart"
-            onClick={() => navigate('/cart')}
+            onClick={() => navigate('/dashboard/cart')}
           >
             <ShoppingCart className="h-6 w-6 text-gray-300" />
           </button>

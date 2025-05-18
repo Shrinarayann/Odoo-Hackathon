@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Menu, Search, ShoppingCart, User, X, Plus, Info, Phone, Package } from 'lucide-react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import Profile from './Profile';
-import Cart from './Cart';
 
 const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -17,13 +16,9 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
   const menuItems = [
     { icon: Package, label: 'My Listings', path: '/dashboard/listings' },
-    { icon: Plus, label: 'Add Product', path: '/dashboard/add-product' },
+    { icon: Plus, label: 'Add Product', path: '/dashboard/products' }, // Open ProductsPage as a page!
     { icon: Info, label: 'About', path: '/dashboard/about' },
     { icon: Phone, label: 'Contact', path: '/dashboard/contact' },
   ];
@@ -33,7 +28,7 @@ const Dashboard = () => {
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-4">
-          <button onClick={toggleSidebar} className="absolute right-4 top-4 text-gray-400 hover:text-white">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="absolute right-4 top-4 text-gray-400 hover:text-white">
             <X className="h-6 w-6" />
           </button>
           <div className="flex items-center space-x-3 mb-8 mt-4">
@@ -46,6 +41,7 @@ const Dashboard = () => {
                 key={index}
                 to={item.path}
                 className="flex items-center space-x-3 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg p-3 transition-colors"
+                onClick={() => setIsSidebarOpen(false)}
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
@@ -62,7 +58,7 @@ const Dashboard = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <button onClick={toggleSidebar} className="text-gray-400 hover:text-white">
+                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-400 hover:text-white">
                   <Menu className="h-6 w-6" />
                 </button>
                 <div className="ml-4">
@@ -78,18 +74,17 @@ const Dashboard = () => {
                   />
                   <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
-
                 <button 
-                className="text-gray-400 hover:text-white"
-                onClick={() => navigate('/cart')}
-                aria-label="Go to cart"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => navigate('/dashboard/cart')}
+                  aria-label="Go to cart"
                 >
                   <ShoppingCart className="h-6 w-6" />
                 </button>
                 <button 
-                className="text-gray-400 hover:text-white"
-                onClick={() => setIsProfileOpen(true)}
-                aria-label="Open profile"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setIsProfileOpen(true)}
+                  aria-label="Open profile"
                 >
                   <User className="h-6 w-6" />
                 </button>
@@ -97,8 +92,6 @@ const Dashboard = () => {
             </div>
           </div>
         </header>
-
-        {/* Main content area */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Banner */}
           <div className="relative rounded-xl overflow-hidden mb-8 h-64">
@@ -111,7 +104,6 @@ const Dashboard = () => {
               <h1 className="text-4xl font-bold text-white">Welcome to Your Dashboard</h1>
             </div>
           </div>
-
           {/* Categories */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-white mb-4">All Categories</h2>

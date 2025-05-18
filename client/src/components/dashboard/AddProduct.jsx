@@ -31,7 +31,7 @@ const AddProduct = () => {
           <div className="flex items-center gap-2">
             {/* Cart icon links to cart page */}
             <Link
-              to="/cart"
+              to="/dashboard/cart"
               className="w-9 h-9 flex items-center justify-center bg-[#23293a] rounded-md hover:bg-[#2a3142] border border-white/30 transition"
               aria-label="Go to cart"
             >
@@ -39,7 +39,7 @@ const AddProduct = () => {
             </Link>
             {/* Profile icon links to profile page */}
             <button
-              onClick={() => navigate('/profile')}
+              onClick={() => navigate('/dashboard/profile')}
               aria-label="Go to profile"
               className="w-9 h-9 flex items-center justify-center bg-[#23293a] rounded-md hover:bg-[#2a3142] border border-white/30 transition"
             >

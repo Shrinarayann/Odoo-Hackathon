@@ -1,13 +1,14 @@
 import React from 'react';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import SearchBar from './SearchBar';
-import FilterButtons from './FilterButtons';
-import ProductCard from './ProductCard';
+import SearchBar from './SearchBar';         // Adjust path as needed
+import FilterButtons from './FilterButtons'; // Adjust path as needed
+import ProductCard from './ProductCard';     // Adjust path as needed
 
 const MyListings = () => {
   const navigate = useNavigate();
 
+  // Example product data
   const products = [
     {
       id: 1,
@@ -50,38 +51,48 @@ const MyListings = () => {
         Back to Dashboard
       </button>
 
-      {/* Header and Add Button */}
+      {/* Header and Add New Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold">My Listings</h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded text-white">
+        <button
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded text-white"
+          onClick={() => navigate('/dashboard/add-product')}
+        >
           <Plus className="h-5 w-5" />
           <span>Add New</span>
         </button>
       </div>
 
-      {/* Search and Filters */}
+      {/* Search Bar */}
       <div className="mb-6">
         <SearchBar />
       </div>
 
+      {/* Filter Buttons */}
       <div className="mb-6">
         <FilterButtons />
       </div>
 
       {/* Product List */}
       <div className="space-y-4">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            name={product.name}
-            price={product.price}
-            category={product.category}
-            status={product.status}
-            seller={product.seller}
-            image={product.image}
-            highlighted={product.highlighted}
-          />
-        ))}
+        {products.length === 0 ? (
+          <div className="text-center text-gray-400 py-20">
+            No listings yet. Click <span className="font-semibold text-indigo-400">Add New</span> to create your first product!
+          </div>
+        ) : (
+          products.map((product) => (
+            <ProductCard
+              key={product.id}
+              name={product.name}
+              price={product.price}
+              category={product.category}
+              status={product.status}
+              seller={product.seller}
+              image={product.image}
+              highlighted={product.highlighted}
+            />
+          ))
+        )}
       </div>
     </div>
   );

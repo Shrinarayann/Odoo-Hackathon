@@ -31,7 +31,7 @@ const Cart = () => {
           </div>
           {/* Profile icon button */}
           <button
-            onClick={() => navigate('/profile')}
+            onClick={() => navigate('/dashboard/profile')}
             aria-label="Go to profile"
             className="w-9 h-9 flex items-center justify-center bg-[#23293a] rounded-md hover:bg-[#2a3142] border border-white/30 transition"
           >
