@@ -4,9 +4,9 @@ import AuthLayout from './components/auth/AuthLayout';
 import LoginForm from './components/auth/LoginForm';
 import SignUpForm from './components/auth/SignUpForm';
 import Dashboard from './components/dashboard/Dashboard';
-import Cart from './components/dashboard/Cart'; // adjust path if needed
 import Profile from './components/dashboard/Profile';
-
+import Cart from './components/dashboard/Cart';
+import AddProduct from './components/dashboard/AddProduct';
 
 function App() {
   return (
