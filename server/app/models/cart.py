@@ -1,7 +1,7 @@
 from mongoengine import Document, ReferenceField, DateTimeField, IntField, EmbeddedDocument, EmbeddedDocumentField, ListField
 from datetime import datetime
-from server.app.models.product import Product
-from server.app.models.user import User
+from app.models.product import Product  # ✅ Correct
+from app.models.user import User
 
 
 class CartItem(EmbeddedDocument):
