@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
 import { Menu, Search, ShoppingCart, User, X, Plus, Info, Phone, Package } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import Profile from './Profile';
+import Cart from './Cart';
 
 const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const [user, setUser] = useState({
+    displayName: 'Brilliant Ostrich',
+    email: 'ostrich@example.com',
+    profilePicture: '',
+    otherInfo: 'Member since 2023',
+  });
+
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -66,10 +78,19 @@ const Dashboard = () => {
                   />
                   <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
-                <button className="text-gray-400 hover:text-white">
+                {/* Cart icon navigates to /cart */}
+                <button
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => navigate('/cart')}
+                  aria-label="Go to cart"
+                >
                   <ShoppingCart className="h-6 w-6" />
                 </button>
-                <button className="text-gray-400 hover:text-white">
+                <button
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setIsProfileOpen(true)}
+                  aria-label="Open profile"
+                >
                   <User className="h-6 w-6" />
                 </button>
               </div>
@@ -108,6 +129,19 @@ const Dashboard = () => {
           </div>
         </main>
       </div>
+      {/* Profile Modal */}
+      {isProfileOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <Profile
+            user={user}
+            onClose={() => setIsProfileOpen(false)}
+            onSave={(updatedUser) => {
+              setUser(updatedUser);
+              setIsProfileOpen(false);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };
