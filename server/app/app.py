@@ -1,4 +1,68 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+import random
+import smtplib
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory OTP storage
+otp_store = {}
+
+def generate_otp(otp_size=6):
+    return ''.join([str(random.randint(0, 9)) for _ in range(otp_size)])
+
+def send_email_verification(sender, receiver, otp):
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        google_app_password = "omrtxudmmdjynfdd"  # Replace with your actual app password
+        server.login(sender, google_app_password)
+        msg = f"Hello, Your OTP is {otp}"
+        server.sendmail(sender, receiver, msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print("Email send error:", e)
+        return False
+
+@app.route('/send-otp', methods=['POST'])
+def send_otp():
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required'}), 400
+
+    otp = generate_otp()
+    otp_store[email] = otp
+
+    sender_email = "ecofinds3@gmail.com"  # Your sender Gmail
+    if send_email_verification(sender_email, email, otp):
+        return jsonify({'success': True, 'message': 'OTP sent successfully'})
+    else:
+        return jsonify({'success': False, 'message': 'Failed to send OTP'}), 500
+
+@app.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    data = request.get_json()
+    email = data.get('email')
+    otp_input = data.get('otp')
+
+    if not email or not otp_input:
+        return jsonify({'success': False, 'message': 'Email and OTP required'}), 400
+
+    if otp_store.get(email) == otp_input:
+        del otp_store[email]
+        return jsonify({'success': True, 'message': 'OTP verified'})
+    else:
+        return jsonify({'success': False, 'message': 'Invalid OTP'}), 401
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+'''from flask import Flask, request, jsonify
 from flask_mail import Mail, Message
 from flask_cors import CORS
 import random
@@ -91,3 +155,4 @@ def verify_otp():
 if __name__ == '__main__':
     print(app.url_map)  # Print all registered routes
     app.run(debug=True)
+'''

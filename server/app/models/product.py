@@ -1,6 +1,6 @@
 from mongoengine import Document, StringField, ReferenceField, IntField, BooleanField, DateTimeField
 from datetime import datetime
-from app.models import User  # Import the User model to reference it
+from app.models.user import User
 
 class Product(Document):
 
