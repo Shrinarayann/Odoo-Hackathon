@@ -49,7 +49,7 @@ const Profile = ({
       <div className="flex items-center justify-between mb-8">
         <img src="/logo.svg" alt="Logo" className="h-8" />
         <div className="flex items-center gap-4">
-          {/* Cart button navigates to /cart */}
+          {/* Cart button navigates to /dashboard/cart */}
           <button
             type="button"
             className="hover:bg-indigo-100/10 rounded-full p-2 transition"
@@ -131,17 +131,15 @@ const Profile = ({
       {/* Navigation */}
       <div className="flex flex-col gap-4 mt-6">
         <Link to="/dashboard/listings">
-            <Button variant="secondary" className="w-full text-center font-semibold">
-                My Listings
-            </Button>
-            </Link>
-
-            <Link to="/purchases">
-            <Button variant="secondary" className="w-full text-center font-semibold">
-                My Purchases
-            </Button>
+          <Button variant="secondary" className="w-full text-center font-semibold">
+            My Listings
+          </Button>
         </Link>
-
+        <Link to="/dashboard/purchases">
+          <Button variant="secondary" className="w-full text-center font-semibold">
+            My Purchases
+          </Button>
+        </Link>
       </div>
     </div>
   );
