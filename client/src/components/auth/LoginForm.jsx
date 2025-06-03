@@ -24,13 +24,24 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      navigate('/dashboard');
+      const response = await fetch('http://localhost:8080/api/auth/v1/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // You can store user info in context or localStorage if needed
+        navigate('/dashboard');
+      } else {
+        alert(result.error || 'Login failed');
+      }
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
