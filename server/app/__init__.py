@@ -7,11 +7,12 @@ def create_app():
     app = Flask(__name__)
     
     # App configuration
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-this-in-production')
+    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
     app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
     
     # Setup CORS
-    CORS(app, origins="*")  # In production, specify allowed origins
+    CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+
     
     # Initialize database connection
     try:

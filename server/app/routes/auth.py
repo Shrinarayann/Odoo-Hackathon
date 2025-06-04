@@ -118,6 +118,7 @@ def send_otp():
         name = data.get('name', '').strip()
         password = data.get('password', '')
         
+        print(email,name,password)
         # Validate required fields
         if not email or not name or not password:
             return jsonify({

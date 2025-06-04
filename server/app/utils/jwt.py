@@ -61,9 +61,13 @@ def token_required(f):
     """
     from functools import wraps
     from flask import request, jsonify
-    
+
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Allow preflight CORS requests
+        if request.method == 'OPTIONS':
+            return '', 200
+
         token = None
         
         # Check for token in Authorization header
@@ -85,5 +89,5 @@ def token_required(f):
         # Pass user info to the route
         request.current_user = result
         return f(*args, **kwargs)
-    
+
     return decorated

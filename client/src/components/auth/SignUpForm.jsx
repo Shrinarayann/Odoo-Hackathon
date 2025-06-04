@@ -57,6 +57,8 @@ const SignUpForm = () => {
       const res = await axios.post('http://localhost:8080/api/v1/auth/send-otp', {
         displayName: formData.displayName,
         email: formData.email,
+        name: formData.displayName,
+        password:formData.password
       });
       
       if (res.data.success) {
@@ -76,7 +78,7 @@ const SignUpForm = () => {
 
   const handleVerifyOtp = async () => {
     const otpString = Array.isArray(otp) ? otp.join('') : String(otp);
-
+    console.log(otpString);
     if (otpString.length !== 6) {
       setErrors({ general: 'Please enter a valid 6-digit OTP' });
       return;
@@ -179,7 +181,7 @@ const SignUpForm = () => {
       <Button
         variant="primary"
         className="mt-6"
-        onClick={() => navigate('/login')}
+        onClick={() => navigate('/')}
       >
         Go to Login
       </Button>
