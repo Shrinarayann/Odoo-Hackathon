@@ -87,8 +87,8 @@ const Profile = ({
               name="displayName"
               value={formUser.displayName}
               onChange={handleChange}
-              placeholder="Name"
-              label="Name"
+              placeholder="Username"
+              label="Username"
               className="w-full"
               autoFocus
             />

@@ -1,11 +1,23 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, User } from 'lucide-react';
-import Button from '../ui/Button'; // Adjust path as needed
+import Button from '../ui/Button';
 
 const AddProduct = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const [formData, setFormData] = useState({
+    name: '', 
+    category: '',
+    description: '',
+    price: '',
+    quantity: '',
+    condition: '',
+    seller_location: '',
+    brand: '',
+    model: '',
+    image_url: '',
+  });
 
   const handleImageClick = () => {
     fileInputRef.current.click();
@@ -14,8 +26,56 @@ const AddProduct = () => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Handle file upload/preview here
       console.log('Selected file:', file.name);
+      // TEMP: mock an image URL
+      setFormData((prev) => ({
+        ...prev,
+        image_url: `https://dummyimage.com/600x400/000/fff&text=${file.name}`,
+      }));
+    }
+  };
+
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const token = localStorage.getItem('token'); // assuming 'token' is the key used during login
+
+    if (!token) {
+      alert('User not authenticated');
+      return;
+    }
+    console.log(token);
+    console.log(formData);
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Product added successfully!');
+        navigate('/dashboard');
+      } else {
+        alert(result.error || 'Failed to add product');
+      }
+    } catch (err) {
+      console.error('Error submitting product:', err);
+      alert('Server error');
     }
   };
 
@@ -24,12 +84,10 @@ const AddProduct = () => {
       <div className="w-[480px] bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-8">
         {/* Top bar */}
         <div className="flex items-center justify-between mb-8">
-          {/* Logo as image placeholder */}
           <div className="h-8 w-20 bg-gray-300 rounded-md flex items-center justify-center">
             <span className="text-gray-500 text-sm">Logo</span>
           </div>
           <div className="flex items-center gap-2">
-            {/* Cart icon links to cart page */}
             <Link
               to="/dashboard/cart"
               className="w-9 h-9 flex items-center justify-center bg-[#23293a] rounded-md hover:bg-[#2a3142] border border-white/30 transition"
@@ -37,7 +95,6 @@ const AddProduct = () => {
             >
               <ShoppingCart className="w-6 h-6 text-gray-300" />
             </Link>
-            {/* Profile icon links to profile page */}
             <button
               onClick={() => navigate('/dashboard/profile')}
               aria-label="Go to profile"
@@ -47,10 +104,13 @@ const AddProduct = () => {
             </button>
           </div>
         </div>
-        {/* Product Details Heading */}
+
+        {/* Heading */}
         <h2 className="text-white text-2xl font-extrabold text-center mb-6 tracking-wide drop-shadow-lg">
           Product Details
         </h2>
+
+        {/* Form */}
         <div className="border border-white/30 rounded-xl p-6 mb-6">
           <div className="flex flex-col items-center mb-6">
             <button
@@ -68,28 +128,110 @@ const AddProduct = () => {
               style={{ display: 'none' }}
             />
           </div>
-          <form className="space-y-3">
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Product Title" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Product Category" />
-            <textarea className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Product Description" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Price" type="number" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Quantity" type="number" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Condition" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Year of Manufacture (if applicable)" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Brand" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Model" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Dimensions (Length, Width, Height)" />
-            <input className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Weight" />
-            <label className="flex items-center text-white">
-              <input type="checkbox" className="mr-2" />
-              Original Packaging
-            </label>
-            <label className="flex items-center text-white">
-              <input type="checkbox" className="mr-2" />
-              Manual/Instructions Included
-            </label>
-            <textarea className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1" placeholder="Working Condition Description" />
-            {/* Add Product Button */}
+
+          <form className="space-y-3" onSubmit={handleSubmit}>
+            <input
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              placeholder="Product Name"
+              required
+            />
+
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              required
+            >
+              <option value="">Select Category</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Home">Home</option>
+              <option value="Sports">Sports</option>
+              <option value="Health">Health</option>
+              <option value="Books">Books</option>
+              <option value="Clothing">Clothing</option>
+            </select>
+
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              placeholder="Product Description"
+              required
+            />
+
+            <input
+              name="brand"
+              value={formData.brand}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              placeholder="Brand"
+              required
+            />
+
+            <input
+              name="model"
+              value={formData.model}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              placeholder="Model"
+              required
+            />
+
+            <input
+              name="price"
+              value={formData.price}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              placeholder="Price"
+              type="number"
+              required
+            />
+
+            <input
+              name="quantity"
+              value={formData.quantity}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              placeholder="Quantity"
+              type="number"
+              required
+            />
+
+            <select
+              name="condition"
+              value={formData.condition}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              required
+            >
+              <option value="">Select Condition</option>
+              <option value="Like New">Like New</option>
+              <option value="Good">Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Used - Acceptable">Used - Acceptable</option>
+            </select>
+
+            <select
+              name="seller_location"
+              value={formData.seller_location}
+              onChange={handleInputChange}
+              className="w-full rounded bg-gray-900/60 text-white px-3 py-2 mb-1"
+              required
+            >
+              <option value="">Select Location</option>
+              <option value="Mumbai, India">Mumbai, India</option>
+              <option value="Delhi, India">Delhi, India</option>
+              <option value="Bangalore, India">Bangalore, India</option>
+              <option value="Chennai, India">Chennai, India</option>
+              <option value="Hyderabad, India">Hyderabad, India</option>
+              <option value="Kolkata, India">Kolkata, India</option>
+            </select>
+
             <Button type="submit" variant="primary" className="w-full mt-4">
               Add Product
             </Button>
@@ -101,3 +243,4 @@ const AddProduct = () => {
 };
 
 export default AddProduct;
+
