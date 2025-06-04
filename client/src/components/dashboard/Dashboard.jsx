@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Search, ShoppingCart, User, X, Plus, Info, Phone, Package } from 'lucide-react';
+import { Menu, Search, ShoppingCart, User, X, Plus, Info, Phone, Package, MonitorSmartphone, Shirt, Home, HeartPulse, BookOpen, Dumbbell } from 'lucide-react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import Profile from './Profile';
 
@@ -18,9 +18,42 @@ const Dashboard = () => {
 
   const menuItems = [
     { icon: Package, label: 'My Listings', path: '/dashboard/listings' },
-    { icon: Plus, label: 'Add Product', path: '/dashboard/products' }, // Open ProductsPage as a page!
+    { icon: Plus, label: 'Add Product', path: '/dashboard/products' },
     { icon: Info, label: 'About', path: '/dashboard/about' },
     { icon: Phone, label: 'Contact', path: '/dashboard/contact' },
+  ];
+
+  const categories = [
+    {
+      icon: MonitorSmartphone,
+      name: 'Electronics',
+      description: 'Smart devices, laptops, and accessories for modern living.',
+    },
+    {
+      icon: Shirt,
+      name: 'Clothing',
+      description: 'Stylish wear for men, women, and kids.',
+    },
+    {
+      icon: Home,
+      name: 'Home',
+      description: 'Essentials and decor for every home.',
+    },
+    {
+      icon: HeartPulse,
+      name: 'Health',
+      description: 'Personal care, wellness, and fitness products.',
+    },
+    {
+      icon: BookOpen,
+      name: 'Books',
+      description: 'Reading materials and office supplies.',
+    },
+    {
+      icon: Dumbbell,
+      name: 'Sports',
+      description: 'Gear and tools for fitness and adventure.',
+    },
   ];
 
   return (
@@ -104,24 +137,29 @@ const Dashboard = () => {
               <h1 className="text-4xl font-bold text-white">Welcome to Your Dashboard</h1>
             </div>
           </div>
-          {/* Categories */}
+
+          {/* Categories Section */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-white mb-4">All Categories</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((item) => (
+              {categories.map((cat, idx) => (
                 <div
-                  key={item}
+                  key={idx}
                   className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer"
                 >
-                  <h3 className="text-lg font-medium text-white">Category {item}</h3>
-                  <p className="text-gray-400 mt-2">Description for category {item}</p>
+                  <cat.icon className="h-8 w-8 text-indigo-400 mb-3" />
+                  <h3 className="text-lg font-medium text-white">{cat.name}</h3>
+                  <p className="text-gray-400 mt-2">{cat.description}</p>
                 </div>
               ))}
             </div>
           </div>
+
           <Outlet />
         </main>
       </div>
+
+      {/* Profile Modal */}
       {isProfileOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <Profile

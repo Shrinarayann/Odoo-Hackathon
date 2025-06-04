@@ -10,6 +10,8 @@ import Profile from './components/dashboard/Profile';
 import Cart from './components/dashboard/Cart';
 import AddProduct from './components/dashboard/AddProduct';
 import ProductsPage from './components/dashboard/ProductsPage';
+import OtpInput from './components/auth/OtpInput';
+import VerifyMobile from './components/auth/VerifyMobile';
 
 
 
@@ -20,6 +22,9 @@ function App() {
         {/* Auth routes */}
         <Route path="/" element={<AuthLayout><LoginForm /></AuthLayout>} />
         <Route path="/signup" element={<AuthLayout><SignUpForm /></AuthLayout>} />
+        <Route path="/otpInput" element={<AuthLayout><OtpInput /></AuthLayout>} />
+        <Route path="/verifyMobile" element={<AuthLayout><VerifyMobile /></AuthLayout>} />
+
 
         {/* Dashboard and related routes */}
         <Route path="/dashboard" element={<Dashboard />} />
