@@ -8,13 +8,18 @@ class Product(Document):
     user_id = ReferenceField('User', required=True)
 
     # Product fields
-    title = StringField(required=True, max_length=100)
+    name = StringField(required=True, max_length=100)
     description = StringField(required=True)
     category = StringField(required=True)
     price = IntField(required=True, min_value=0)
     image_url = StringField()
     is_sold = BooleanField(default=False)
-    eco_score = IntField(min_value=0, max_value=100)
+    #eco_score = IntField(min_value=0, max_value=100)
+    quantity = IntField(required=True,min_value=0)
+    condition = StringField(required=True)
+    brand=StringField()
+    model=StringField()
+    seller_location=StringField()
 
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
