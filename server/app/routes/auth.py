@@ -134,7 +134,7 @@ def login():
                 return jsonify({'error': 'Invalid credentials'}), 401
                 
         except Exception as e:
-            return jsonify({'error': 'Database error during login'}), 500
+            return jsonify({'error': f'{e}'}), 500
         
         # Verify password
         if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):

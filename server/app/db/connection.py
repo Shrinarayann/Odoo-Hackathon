@@ -1,6 +1,8 @@
 import os
 from mongoengine import connect, disconnect
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from dotenv import load_dotenv
+load_dotenv()  # Automatically loads .env file from current directory
 
 class DatabaseConnection:
     """
