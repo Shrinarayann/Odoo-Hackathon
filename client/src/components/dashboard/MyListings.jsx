@@ -159,7 +159,7 @@ const MyListings = () => {
       }
 
       // Make API call
-      const response = await axios.get('http://localhost:8080/api/v1/products?', {
+      const response = await axios.get('http://localhost:8080/api/v1/products', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -93,7 +93,8 @@ const SignUpForm = () => {
       });
 
       if (res.data.success) {
-      navigate('/verifyMobile', { state: { email: formData.email } });
+        setFormStage('completed');
+      navigate('/', { state: { email: formData.email } });
       }
       else {
         setErrors({ general: res.data.message || 'OTP verification failed' });

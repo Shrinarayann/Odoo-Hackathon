@@ -11,7 +11,7 @@ def create_app():
     app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
     
     # Setup CORS
-    CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+    CORS(app, origins="*", supports_credentials=True)
 
     
     # Initialize database connection
