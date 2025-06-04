@@ -1,4 +1,4 @@
-from mongoengine import Document, StringField, ReferenceField, IntField, BooleanField, DateTimeField
+from mongoengine import Document, StringField, ReferenceField, IntField, BooleanField, DateTimeField, DictField
 from datetime import datetime
 from app.models.user import User
 
@@ -9,17 +9,18 @@ class Product(Document):
 
     # Product fields
     name = StringField(required=True, max_length=100)
-    description = StringField(required=True)
     category = StringField(required=True)
+    description = StringField(required=True)
     price = IntField(required=True, min_value=0)
-    image_url = StringField()
-    is_sold = BooleanField(default=False)
-    #eco_score = IntField(min_value=0, max_value=100)
     quantity = IntField(required=True,min_value=0)
     condition = StringField(required=True)
+    seller_location=StringField()
     brand=StringField()
     model=StringField()
-    seller_location=StringField()
+    image_url = StringField()
+    status = BooleanField(default=True)
+    auction_status=BooleanField(default=False)
+    # auction=DictField()
 
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)

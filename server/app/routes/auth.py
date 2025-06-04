@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app.models.user import User
-from ..utils.jwt import JWTManager,token_required
+from ..utils.jwt import JWTManager, token_required
 from mongoengine import NotUniqueError, ValidationError
 import bcrypt
 import smtplib
@@ -20,14 +20,14 @@ otp_store = {}
 registration_temp_store = {}  # Temporary storage for registration data
 
 # Configuration
-OTP_EXPIRY_SECONDS = 300  # 5 minutes (was 2 seconds - too short!)
+OTP_EXPIRY_SECONDS = 300  # 5 minutes
 OTP_SIZE = 6
 SENDER_EMAIL = "ecofinds3@gmail.com"
 GOOGLE_APP_PASSWORD = "xxazeeewsbbofbbz"  # Use environment variable in production
 
 def generate_otp(otp_size=OTP_SIZE):
     """Generate a random OTP of specified size"""
-    return ''.join([str(random.randint(0, 9)) for _ in range(otp_size)])  # Fixed syntax error
+    return ''.join([str(random.randint(0, 9)) for _ in range(otp_size)])
 
 def validate_email(email):
     """Validate email format"""
@@ -97,7 +97,7 @@ def cleanup_expired_otps():
     # Also cleanup expired registration data
     expired_registrations = []
     for email, data in registration_temp_store.items():
-        if current_time - data['timestamp'] > timedelta(seconds=OTP_EXPIRY_SECONDS * 2):  # Keep registration data longer
+        if current_time - data['timestamp'] > timedelta(seconds=OTP_EXPIRY_SECONDS * 2):
             expired_registrations.append(email)
     
     for email in expired_registrations:
@@ -118,7 +118,6 @@ def send_otp():
         name = data.get('name', '').strip()
         password = data.get('password', '')
         
-        print(email,name,password)
         # Validate required fields
         if not email or not name or not password:
             return jsonify({
@@ -170,7 +169,7 @@ def send_otp():
         otp_store[email] = {
             'otp': otp,
             'timestamp': current_time,
-            'attempts': 0  # Track verification attempts
+            'attempts': 0
         }
         
         # Store registration data temporarily
@@ -189,10 +188,8 @@ def send_otp():
             }), 200
         else:
             # Clean up if email sending failed
-            if email in otp_store:
-                del otp_store[email]
-            if email in registration_temp_store:
-                del registration_temp_store[email]
+            otp_store.pop(email, None)
+            registration_temp_store.pop(email, None)
             
             return jsonify({
                 'success': False, 
@@ -209,6 +206,7 @@ def send_otp():
 @auth_bp.route('/verify-otp', methods=['POST'])
 def verify_otp():
     """Verify OTP and complete user registration"""
+    email = None
     try:
         # Clean up expired OTPs
         cleanup_expired_otps()
@@ -237,9 +235,8 @@ def verify_otp():
         # Check if OTP is expired
         if datetime.now() - stored_otp_data['timestamp'] > timedelta(seconds=OTP_EXPIRY_SECONDS):
             # Clean up expired data
-            del otp_store[email]
-            if email in registration_temp_store:
-                del registration_temp_store[email]
+            otp_store.pop(email, None)
+            registration_temp_store.pop(email, None)
             
             return jsonify({
                 'success': False, 
@@ -249,9 +246,8 @@ def verify_otp():
         # Check attempt limit
         if stored_otp_data['attempts'] >= 3:
             # Clean up after too many attempts
-            del otp_store[email]
-            if email in registration_temp_store:
-                del registration_temp_store[email]
+            otp_store.pop(email, None)
+            registration_temp_store.pop(email, None)
             
             return jsonify({
                 'success': False, 
@@ -276,12 +272,12 @@ def verify_otp():
                 'message': 'Registration data not found. Please start registration again.'
             }), 404
         
-        # Check if email still doesn't exist (double-check)
+        # Check if email still doesn't exist (race condition check)
         existing_user = User.objects(email=email).first()
         if existing_user:
             # Clean up
-            del otp_store[email]
-            del registration_temp_store[email]
+            otp_store.pop(email, None)
+            registration_temp_store.pop(email, None)
             return jsonify({
                 'success': False, 
                 'message': 'Email already registered'
@@ -300,23 +296,31 @@ def verify_otp():
             password_hash=password_hash
         )
         
-        # Save user to database
-        user.save()
+        # Save user to database with proper NotUniqueError handling
+        try:
+            user.save()
+        except NotUniqueError:
+            # Clean up temporary data
+            otp_store.pop(email, None)
+            registration_temp_store.pop(email, None)
+            logger.warning(f"Attempt to register duplicate email: {email}")
+            return jsonify({
+                'success': False, 
+                'message': 'Email already exists'
+            }), 409
         
         # Generate JWT token
         token = JWTManager.generate_token(user.id, user.name, user.email)
         if not token:
-            # If token generation fails, we should still clean up but return error
-            del otp_store[email]
-            del registration_temp_store[email]
+            logger.error(f"Failed to generate token for user: {email}")
             return jsonify({
                 'success': False, 
                 'message': 'User created but failed to generate token. Please login.'
             }), 500
         
         # Clean up temporary data
-        del otp_store[email]
-        del registration_temp_store[email]
+        otp_store.pop(email, None)
+        registration_temp_store.pop(email, None)
         
         logger.info(f"User registered successfully: {email}")
         
@@ -332,22 +336,11 @@ def verify_otp():
             'token': token
         }), 201
     
-    except Exception as e:
-        # # Clean up and return error
-        # if email in otp_store:
-        #     del otp_store[email]
-        # if email in registration_temp_store:
-        #     del registration_temp_store[email]
-        # return jsonify({
-        #     'success': False, 
-        #     'message': 'Email already exists'
-        # }), 409
-        return jsonify({
-            "error":e
-        })
-    
     except ValidationError as e:
         logger.error(f"Validation error during registration: {str(e)}")
+        if email:
+            otp_store.pop(email, None)
+            registration_temp_store.pop(email, None)
         return jsonify({
             'success': False, 
             'message': f'Validation error: {str(e)}'
@@ -355,6 +348,9 @@ def verify_otp():
     
     except Exception as e:
         logger.error(f"Error in verify_otp: {str(e)}")
+        if email:
+            otp_store.pop(email, None)
+            registration_temp_store.pop(email, None)
         return jsonify({
             'success': False, 
             'message': 'Internal server error'
@@ -423,13 +419,10 @@ def resend_otp():
             'success': False, 
             'message': 'Internal server error'
         }), 500
-    
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """
-    User login endpoint - now only supports email login
-    """
+    """User login endpoint - supports email login"""
     try:
         # Get request data
         data = request.get_json()
@@ -437,7 +430,7 @@ def login():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
-        # Extract login credentials (only email now, since name is not unique)
+        # Extract login credentials
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         
@@ -449,7 +442,7 @@ def login():
         if not validate_email(email):
             return jsonify({'error': 'Invalid email format'}), 400
         
-        # Find user by email only
+        # Find user by email
         try:
             user = User.objects(email=email).first()
             
@@ -457,67 +450,41 @@ def login():
                 return jsonify({'error': 'Invalid credentials'}), 401
                 
         except Exception as e:
-            return jsonify({'error': f'{e}'}), 500
+            logger.error(f"Database error during login: {str(e)}")
+            return jsonify({'error': 'Database error during login'}), 500
         
         # Verify password
         if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
             return jsonify({'error': 'Invalid credentials'}), 401
         
-        # Generate JWT token (updated to use name instead of username)
+        # Generate JWT token
         token = JWTManager.generate_token(user.id, user.name, user.email)
         
         if not token:
+            logger.error(f"Failed to generate token for user: {email}")
             return jsonify({'error': 'Failed to generate token'}), 500
+        
+        logger.info(f"User logged in successfully: {email}")
         
         return jsonify({
             'message': 'Login successful',
             'user': {
                 'id': str(user.id),
                 'email': user.email,
-                'name': user.name,  # Changed from username to name
+                'name': user.name,
                 'created_at': user.created_at.isoformat()
             },
             'token': token
         }), 200
         
     except Exception as e:
+        logger.error(f"Error in login: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
-
-
-@auth_bp.route('/verify-token', methods=['GET'])
-@token_required
-def verify_token():
-    """
-    Verify if token is valid and return user info
-    """
-    try:
-        current_user = request.current_user
-        
-        # Fetch fresh user data from database
-        user = User.objects(id=current_user['user_id']).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
-        return jsonify({
-            'message': 'Token is valid',
-            'user': {
-                'id': str(user.id),
-                'email': user.email,
-                'name': user.name,  # Changed from username to name
-                'created_at': user.created_at.isoformat()
-            }
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': 'Internal server error'}), 500
-
 
 @auth_bp.route('/profile', methods=['GET'])
 @token_required
 def get_profile():
-    """
-    Get current user profile
-    """
+    """Get current user profile"""
     try:
         current_user = request.current_user
         
@@ -530,11 +497,12 @@ def get_profile():
             'user': {
                 'id': str(user.id),
                 'email': user.email,
-                'name': user.name,  # Changed from username to name
+                'name': user.name,
                 'created_at': user.created_at.isoformat(),
                 'updated_at': user.updated_at.isoformat()
             }
         }), 200
         
     except Exception as e:
+        logger.error(f"Error in get_profile: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500

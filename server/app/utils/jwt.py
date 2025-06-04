@@ -3,6 +3,11 @@ from datetime import datetime, timedelta
 from flask import current_app
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 class JWTManager:
     @staticmethod
     def generate_token(user_id, username, email):
