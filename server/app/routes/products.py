@@ -97,10 +97,101 @@ def create_product():
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
-    
+
+@products_bp.route('/<product_id>', methods=['DELETE'])
+@token_required
+def delete_product(product_id):
+    try:
+        user_payload = request.current_user
+        user_id = user_payload.get('user_id')
+
+        product = Product.objects(id=product_id, user_id=user_id).first()
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found or not owned by you'}), 404
+
+        # Remove reference from User.products as well
+        User.objects(id=user_id).update(pull__products=product)
+        product.delete()
+
+        return jsonify({'success': True, 'message': 'Product deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
-
+@products_bp.route('/search', methods=['GET'])
+@token_required  # Optional if you want to allow unauthenticated access
+def get_products_by_category():
+    try:
+        category = request.args.get('category', None)
+        if not category:
+            return jsonify({'success': False, 'message': 'Category query parameter is required'}), 400
+        
+        user_payload = request.current_user
+        user_id = user_payload.get('user_id') if user_payload else None  # Handle case where user_payload might be None
+        
+        # Query for products with matching category
+        # Exclude products added by the logged-in user if user_id is present
+        query = {'category': category}
+        print(f"Category: {category}")
+        print(f"Query: {query}")
+        print(f"User ID: {user_id}")
+        
+        if user_id:
+            query['user_id__ne'] = user_id  # MongoEngine syntax for "not equal"
+        
+        # Execute the query
+        products = Product.objects(**query)
+        print(f"Found {len(products)} products")
+        
+        # Serialize products with seller info included
+        results = []
+        for product in products:
+            try:
+                # Handle case where user_id might not be populated (if it's a reference)
+                seller_info = {
+                    'name': 'Unknown',
+                    'phone': 'N/A',
+                    'email': 'N/A'
+                }
+                
+                # Check if user_id is populated and has the required fields
+                if hasattr(product, 'user_id') and product.user_id:
+                    if hasattr(product.user_id, 'name'):
+                        seller_info['name'] = product.user_id.name
+                    if hasattr(product.user_id, 'phone_number'):
+                        seller_info['phone'] = product.user_id.phone_number
+                    if hasattr(product.user_id, 'email'):
+                        seller_info['email'] = product.user_id.email
+                
+                product_data = {
+                    'id': str(product.id),
+                    'name': product.name,
+                    'description': product.description,
+                    'price': product.price,
+                    'category': product.category,
+                    'seller': seller_info
+                }
+                
+                # Add image URL if it exists
+                if hasattr(product, 'image_url') and product.image_url:
+                    product_data['image_url'] = product.image_url
+                elif hasattr(product, 'image') and product.image:
+                    product_data['image'] = product.image
+                
+                results.append(product_data)
+                print(f"Added product: {product.name}")
+                
+            except Exception as e:
+                print(f"Error processing product {product.id}: {str(e)}")
+                continue
+        
+        print(f"Returning {len(results)} products")
+        return jsonify({'success': True, 'products': results}), 200
+        
+    except Exception as e:
+        print(f"Error in get_products_by_category: {str(e)}")
+        return jsonify({'success': False, 'message': 'Internal server error', 'error': str(e)}), 500
 
  # Set up logging
 # logger = logging.getLogger(__name__)

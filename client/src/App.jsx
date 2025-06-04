@@ -14,7 +14,6 @@ import OtpInput from './components/auth/OtpInput';
 import VerifyMobile from './components/auth/VerifyMobile';
 
 
-
 function App() {
   return (
     <Router>
@@ -34,6 +33,7 @@ function App() {
         <Route path="/dashboard/profile" element={<Profile />} />
         <Route path="/dashboard/cart" element={<Cart />} />
         <Route path="/dashboard/products" element={<ProductsPage />} />
+
       </Routes>
     </Router>
   );
