@@ -35,13 +35,15 @@ const LoginForm = () => {
       const result = await response.json();
 
       if (response.ok) {
-        // You can store user info in context or localStorage if needed
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
         navigate('/dashboard');
       } else {
         alert(result.error || 'Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
+      alert('Something went wrong. Please try again later.');
     } finally {
       setIsLoading(false);
     }
