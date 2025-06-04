@@ -215,7 +215,7 @@ def verify_otp():
             registration_temp_store.pop(email, None)
             return jsonify({'success': False, 'message': 'User already exists'}), 409
 
-        password_hash = bcrypt.hashpw(
+        password = bcrypt.hashpw(
             registration_data['password'].encode('utf-8'),
             bcrypt.gensalt()
         ).decode('utf-8')
@@ -224,7 +224,7 @@ def verify_otp():
         user = User(
             email=email,
             name=registration_data['name'],
-            password=password_hash,
+            password=password,
             phone_number=registration_data['phone_number'],
             location=registration_data['location'],
             profile_pic=registration_data.get('profile_pic', '')
@@ -371,7 +371,7 @@ def login():
             return jsonify({'error': 'Database error during login'}), 500
         
         # Verify password
-        if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+        if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
             return jsonify({'error': 'Invalid credentials'}), 401
         
         # Generate JWT token

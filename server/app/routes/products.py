@@ -10,6 +10,94 @@ import logging
 products_bp = Blueprint('products', __name__)
 
 
+@products_bp.route('/', methods=['GET'])
+@token_required
+def get_user_products():
+    try:
+        user_payload = request.current_user
+        user_id = user_payload.get('user_id')
+
+        user = User.objects(id=user_id).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        products = user.products  # This is a list of Product references
+
+        product_list = []
+        for product in products:
+            product_list.append({
+                'id': str(product.id),
+                'name': product.name,
+                'description': product.description,
+                'category': product.category,
+                'price': product.price,
+                'quantity': product.quantity,
+                'condition': product.condition,
+                'image_url': product.image_url,
+                'brand': product.brand,
+                'model': product.model,
+                'seller_location': product.seller_location,
+                'status': product.status,
+                'auction_status': product.auction_status,
+                'created_at': product.created_at.isoformat(),
+                'updated_at': product.updated_at.isoformat(),
+            })
+
+        return jsonify({
+            'success': True,
+            'products': product_list
+        }), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+@products_bp.route('/', methods=['POST'])
+@token_required
+def create_product():
+    try:
+        user_payload = request.current_user
+        user_id = user_payload.get('user_id')
+        user = User.objects(id=user_id).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+
+        required_fields = ['name', 'description', 'category', 'price', 'quantity', 'condition']
+        if not all(field in data for field in required_fields):
+            return jsonify({'success': False, 'message': 'Missing required product fields'}), 400
+
+        product = Product(
+            user_id=user,
+            name=data['name'],
+            description=data['description'],
+            category=data['category'],
+            price=data['price'],
+            quantity=data['quantity'],
+            condition=data['condition'],
+            image_url=data.get('image_url', ''),
+            brand=data.get('brand', ''),
+            model=data.get('model', ''),
+            seller_location=data.get('seller_location', ''),
+        )
+        product.save()
+
+        # Add product reference to user's products array
+        user.products.append(product)
+        user.save()
+
+        return jsonify({
+            'success': True,
+            'message': 'Product added successfully',
+            'product_id': str(product.id)
+        }), 201
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+    
 
 
 
