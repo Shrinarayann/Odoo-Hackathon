@@ -3,7 +3,7 @@ from datetime import datetime
 import bcrypt
 
 class User(Document):
-    profile_pic=StringField(required=True)
+    profile_pic=StringField()
     name = StringField(required=True)
     email = StringField(required=True,unique=True)
     phone_number=IntField(required=True,unique=True)
@@ -25,7 +25,7 @@ class User(Document):
         return super(User, self).save(*args, **kwargs)
 
     def hash_password(self, raw_password):
-        self.password_hash = bcrypt.hashpw(raw_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        self.password = bcrypt.hashpw(raw_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     def verify_password(self, input_password):
-        return bcrypt.checkpw(input_password.encode('utf-8'), self.password_hash.encode('utf-8'))
+        return bcrypt.checkpw(input_password.encode('utf-8'), self.password.encode('utf-8'))

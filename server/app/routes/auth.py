@@ -107,7 +107,6 @@ def cleanup_expired_otps():
 def send_otp():
     """Send OTP for email verification during registration"""
     try:
-        # Clean up expired OTPs
         cleanup_expired_otps()
         
         data = request.get_json()
@@ -117,213 +116,134 @@ def send_otp():
         email = data.get('email', '').strip().lower()
         name = data.get('name', '').strip()
         password = data.get('password', '')
-        
+        phone_number = data.get('phone_number')
+        location = data.get('location', '').strip()
+        profile_pic = data.get('profile_pic', '')  # Optional
+
         # Validate required fields
-        if not email or not name or not password:
-            return jsonify({
-                'success': False, 
-                'message': 'Email, name, and password are required'
-            }), 400
-        
-        # Validate email format
+        if not all([email, name, password, phone_number, location]):
+            return jsonify({'success': False, 'message': 'All fields except profile_pic are required'}), 400
+
         if not validate_email(email):
-            return jsonify({
-                'success': False, 
-                'message': 'Invalid email format'
-            }), 400
-        
-        # Validate password strength
+            return jsonify({'success': False, 'message': 'Invalid email format'}), 400
+
         is_valid_password, password_message = validate_password(password)
         if not is_valid_password:
-            return jsonify({
-                'success': False, 
-                'message': password_message
-            }), 400
-        
-        # Validate name
+            return jsonify({'success': False, 'message': password_message}), 400
+
         if len(name) < 2:
-            return jsonify({
-                'success': False, 
-                'message': 'Name must be at least 2 characters long'
-            }), 400
-        
-        # Check if email already exists
-        try:
-            existing_user = User.objects(email=email).first()
-            if existing_user:
-                return jsonify({
-                    'success': False, 
-                    'message': 'Email already registered'
-                }), 409
-        except Exception as e:
-            logger.error(f"Database error during email validation: {str(e)}")
-            return jsonify({
-                'success': False, 
-                'message': 'Database error during validation'
-            }), 500
-        
+            return jsonify({'success': False, 'message': 'Name must be at least 2 characters long'}), 400
+
+        # Check if user already exists
+        if User.objects(email=email).first():
+            return jsonify({'success': False, 'message': 'Email already registered'}), 409
+        if User.objects(phone_number=phone_number).first():
+            return jsonify({'success': False, 'message': 'Phone number already registered'}), 409
+
         # Generate and store OTP
         otp = generate_otp()
         current_time = datetime.now()
-        
+
         otp_store[email] = {
             'otp': otp,
             'timestamp': current_time,
             'attempts': 0
         }
-        
-        # Store registration data temporarily
+
+        # Store all registration data temporarily
         registration_temp_store[email] = {
             'name': name,
             'password': password,
+            'phone_number': phone_number,
+            'location': location,
+            'profile_pic': profile_pic,
             'timestamp': current_time
         }
-        
-        # Send OTP via email
+
         if send_email_verification(email, otp):
-            return jsonify({
-                'success': True, 
-                'message': 'OTP sent successfully to your email',
-                'expires_in': OTP_EXPIRY_SECONDS
-            }), 200
+            return jsonify({'success': True, 'message': 'OTP sent successfully', 'expires_in': OTP_EXPIRY_SECONDS}), 200
         else:
-            # Clean up if email sending failed
             otp_store.pop(email, None)
             registration_temp_store.pop(email, None)
-            
-            return jsonify({
-                'success': False, 
-                'message': 'Failed to send OTP. Please try again.'
-            }), 500
-    
+            return jsonify({'success': False, 'message': 'Failed to send OTP. Please try again.'}), 500
+
     except Exception as e:
         logger.error(f"Error in send_otp: {str(e)}")
-        return jsonify({
-            'success': False, 
-            'message': 'Internal server error'
-        }), 500
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
 
 @auth_bp.route('/verify-otp', methods=['POST'])
 def verify_otp():
     """Verify OTP and complete user registration"""
     email = None
     try:
-        # Clean up expired OTPs
         cleanup_expired_otps()
         
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'message': 'No data provided'}), 400
-        
+
         email = data.get('email', '').strip().lower()
         otp_input = data.get('otp', '').strip()
-        
+
         if not email or not otp_input:
-            return jsonify({
-                'success': False, 
-                'message': 'Email and OTP are required'
-            }), 400
-        
-        # Check if OTP exists
+            return jsonify({'success': False, 'message': 'Email and OTP are required'}), 400
+
         stored_otp_data = otp_store.get(email)
         if not stored_otp_data:
-            return jsonify({
-                'success': False, 
-                'message': 'OTP not found or expired. Please request a new OTP.'
-            }), 404
-        
-        # Check if OTP is expired
+            return jsonify({'success': False, 'message': 'OTP not found or expired'}), 404
+
         if datetime.now() - stored_otp_data['timestamp'] > timedelta(seconds=OTP_EXPIRY_SECONDS):
-            # Clean up expired data
             otp_store.pop(email, None)
             registration_temp_store.pop(email, None)
-            
-            return jsonify({
-                'success': False, 
-                'message': 'OTP has expired. Please request a new OTP.'
-            }), 401
-        
-        # Check attempt limit
+            return jsonify({'success': False, 'message': 'OTP has expired'}), 401
+
         if stored_otp_data['attempts'] >= 3:
-            # Clean up after too many attempts
             otp_store.pop(email, None)
             registration_temp_store.pop(email, None)
-            
-            return jsonify({
-                'success': False, 
-                'message': 'Too many verification attempts. Please request a new OTP.'
-            }), 401
-        
-        # Verify OTP
+            return jsonify({'success': False, 'message': 'Too many attempts'}), 401
+
         if stored_otp_data['otp'] != otp_input:
-            # Increment attempt counter
             otp_store[email]['attempts'] += 1
-            return jsonify({
-                'success': False, 
-                'message': 'Invalid OTP. Please check and try again.',
-                'attempts_remaining': 3 - otp_store[email]['attempts']
-            }), 401
-        
-        # OTP is valid, get registration data
+            return jsonify({'success': False, 'message': 'Invalid OTP', 'attempts_remaining': 3 - otp_store[email]['attempts']}), 401
+
         registration_data = registration_temp_store.get(email)
         if not registration_data:
-            return jsonify({
-                'success': False, 
-                'message': 'Registration data not found. Please start registration again.'
-            }), 404
-        
-        # Check if email still doesn't exist (race condition check)
-        existing_user = User.objects(email=email).first()
-        if existing_user:
-            # Clean up
+            return jsonify({'success': False, 'message': 'Registration data not found'}), 404
+
+        if User.objects(email=email).first() or User.objects(phone_number=registration_data['phone_number']).first():
             otp_store.pop(email, None)
             registration_temp_store.pop(email, None)
-            return jsonify({
-                'success': False, 
-                'message': 'Email already registered'
-            }), 409
-        
-        # Hash password
+            return jsonify({'success': False, 'message': 'User already exists'}), 409
+
         password_hash = bcrypt.hashpw(
-            registration_data['password'].encode('utf-8'), 
+            registration_data['password'].encode('utf-8'),
             bcrypt.gensalt()
         ).decode('utf-8')
-        
-        # Create new user
+
+        # Create new user with all fields
         user = User(
             email=email,
             name=registration_data['name'],
-            password_hash=password_hash
+            password=password_hash,
+            phone_number=registration_data['phone_number'],
+            location=registration_data['location'],
+            profile_pic=registration_data.get('profile_pic', '')
         )
-        
-        # Save user to database with proper NotUniqueError handling
+
         try:
             user.save()
         except NotUniqueError:
-            # Clean up temporary data
             otp_store.pop(email, None)
             registration_temp_store.pop(email, None)
-            logger.warning(f"Attempt to register duplicate email: {email}")
-            return jsonify({
-                'success': False, 
-                'message': 'Email already exists'
-            }), 409
-        
-        # Generate JWT token
+            return jsonify({'success': False, 'message': 'Duplicate registration'}), 409
+
         token = JWTManager.generate_token(user.id, user.name, user.email)
         if not token:
-            logger.error(f"Failed to generate token for user: {email}")
-            return jsonify({
-                'success': False, 
-                'message': 'User created but failed to generate token. Please login.'
-            }), 500
-        
-        # Clean up temporary data
+            return jsonify({'success': False, 'message': 'User created but token generation failed'}), 500
+
         otp_store.pop(email, None)
         registration_temp_store.pop(email, None)
-        
-        logger.info(f"User registered successfully: {email}")
-        
+
         return jsonify({
             'success': True,
             'message': 'User registered successfully',
@@ -331,30 +251,27 @@ def verify_otp():
                 'id': str(user.id),
                 'email': user.email,
                 'name': user.name,
+                'location': user.location,
+                'phone_number': user.phone_number,
+                'profile_pic': user.profile_pic,
                 'created_at': user.created_at.isoformat()
             },
             'token': token
         }), 201
-    
+
     except ValidationError as e:
-        logger.error(f"Validation error during registration: {str(e)}")
         if email:
             otp_store.pop(email, None)
             registration_temp_store.pop(email, None)
-        return jsonify({
-            'success': False, 
-            'message': f'Validation error: {str(e)}'
-        }), 400
-    
+        return jsonify({'success': False, 'message': str(e)}), 400
+
     except Exception as e:
-        logger.error(f"Error in verify_otp: {str(e)}")
         if email:
             otp_store.pop(email, None)
             registration_temp_store.pop(email, None)
-        return jsonify({
-            'success': False, 
-            'message': 'Internal server error'
-        }), 500
+        logger.error(f"Error in verify_otp: {str(e)}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
 
 @auth_bp.route('/resend-otp', methods=['POST'])
 def resend_otp():
