@@ -1,206 +1,88 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, ArrowLeft, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import SearchBar from './SearchBar';
-import FilterButtons from './FilterButtons';
-import ProductCard from './ProductCard';
+import { Loader2 } from 'lucide-react';
 
 const MyListings = () => {
-  const navigate = useNavigate();
-
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [filters, setFilters] = useState({
-    status: 'all', // 'active', 'sold', 'all'
-    category: '',
-    search: ''
-  });
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  // Fetch user's products
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setError('Authentication token not found');
-        return;
-      }
-
-      const response = await axios.get('http://localhost:8080/api/v1/products', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          setError('Authentication token not found');
+          return;
         }
-      });
 
-      if (response.data?.products) {
-        setProducts(response.data.products);
-      }
+        const response = await axios.get('http://localhost:8080/api/v1/products/', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
 
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      if (err.response?.status === 401) {
-        setError('Authentication failed. Please login again.');
-      } else if (err.response?.status === 404) {
-        setError('User not found.');
-      } else {
-        setError(err.response?.data?.error || 'Failed to fetch products. Please try again.');
+        if (response.data?.products) {
+          console.log(response.data.products);
+          setProducts(response.data.products);
+        }
+
+      } catch (err) {
+        console.error(err);
+        setError(err.response?.data?.message || 'Something went wrong.');
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetchProducts();
   }, []);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  // Handle filter changes
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
-  };
-
-  // Handle search
-  const handleSearch = (searchTerm) => {
-    const newFilters = { ...filters, search: searchTerm };
-    handleFilterChange(newFilters);
-  };
-
-  // Client-side filtering
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = filters.search
-      ? product.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        product.description.toLowerCase().includes(filters.search.toLowerCase()) ||
-        product.category.toLowerCase().includes(filters.search.toLowerCase())
-      : true;
-
-    const matchesStatus = filters.status === 'all'
-      ? true
-      : filters.status === 'sold'
-      ? product.status === false || product.is_sold === true
-      : product.status === true && product.is_sold !== true;
-
-    const matchesCategory = filters.category
-      ? product.category.toLowerCase() === filters.category.toLowerCase()
-      : true;
-
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
-
-  if (loading && products.length === 0) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
-            <span className="ml-2 text-lg">Loading your listings...</span>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+        <span className="ml-2">Loading products...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-red-400 flex items-center justify-center">
+        <p>{error}</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="mb-6 flex items-center text-sm text-indigo-400 hover:text-indigo-200"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </button>
-
-        {/* Header and Add New Button */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">My Listings</h1>
-          <button
-            onClick={() => navigate('/dashboard/add-product')}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Add New
-          </button>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-600/20 border border-red-600/50 rounded-lg text-red-200">
-            <p>{error}</p>
-            <button
-              onClick={() => fetchProducts()}
-              className="mt-2 text-sm text-red-400 hover:text-red-200 underline"
-            >
-              Try again
-            </button>
+      <h1 className="text-3xl font-bold mb-6">My Listings</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {products.map(product => (
+          <div key={product.id} className="bg-gray-800 rounded-xl p-4 shadow">
+            <img
+              src={product.image_url || 'https://via.placeholder.com/150'}
+              alt={product.name}
+              className="w-full h-40 object-cover rounded-md mb-4"
+            />
+            <h2 className="text-xl font-semibold">{product.name}</h2>
+            <p className="text-sm text-gray-400">{product.category}</p>
+            <p className="text-sm text-gray-400">₹{product.price}</p>
+            <p className="text-sm text-gray-500 mt-2">{product.description}</p>
           </div>
-        )}
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <SearchBar onSearch={handleSearch} />
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="mb-6">
-          <FilterButtons 
-            activeFilter={filters.status}
-            onFilterChange={(status) => handleFilterChange({ ...filters, status })}
-          />
-        </div>
-
-        {/* Loading indicator for mid-load */}
-        {loading && products.length > 0 && (
-          <div className="text-center py-4">
-            <Loader2 className="w-6 h-6 animate-spin text-indigo-400 mx-auto" />
-          </div>
-        )}
-
-        {/* Product List */}
-        <div className="space-y-4">
-          {filteredProducts.length === 0 && !loading ? (
-            <div className="text-center py-20 text-gray-400">
-              <p className="text-lg mb-4">
-                {filters.search || filters.status !== 'all' || filters.category 
-                  ? 'No products found matching your criteria.'
-                  : 'No listings yet. Click Add New to create your first product!'
-                }
-              </p>
-              {(filters.search || filters.status !== 'all' || filters.category) && (
-                <button
-                  onClick={() => handleFilterChange({ status: 'all', category: '', search: '' })}
-                  className="text-indigo-400 hover:text-indigo-200 underline"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-          ) : (
-            filteredProducts.map((product) => (
-              <ProductCard 
-                key={product._id}
-                product={{
-                  ...product,
-                  status: product.is_sold ? 'Sold' : 'Active',
-                  seller: 'You',
-                  image: product.image_url
-                }}
-              />
-            ))
-          )}
-        </div>
+        ))}
       </div>
     </div>
   );
 };
 
 export default MyListings;
+
+
 
 
 
