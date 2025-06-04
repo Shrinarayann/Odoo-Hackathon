@@ -3,9 +3,9 @@ from datetime import datetime
 import bcrypt
 
 class User(Document):
-    email = StringField(required=True, unique=True)
+    email = StringField(required=True,unique=True)
     password_hash = StringField(required=True)  # This should be password_hash, not password
-    name = StringField(required=True, unique=True)
+    name = StringField(required=True)
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
 
