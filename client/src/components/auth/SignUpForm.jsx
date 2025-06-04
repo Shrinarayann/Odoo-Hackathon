@@ -359,6 +359,7 @@ import { useNavigate } from 'react-router-dom';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import OtpInput from './OtpInput';
+import VerifyMobile from './VerifyMobile';
 
 const SignUpForm = () => {
   const [formData, setFormData] = useState({ displayName: '', email: '', password: '' });
@@ -402,6 +403,7 @@ const SignUpForm = () => {
   };
 
   const handleSignup = async () => {
+    
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -425,6 +427,7 @@ const SignUpForm = () => {
     }
   };
 
+
   const handleVerifyOtp = async () => {
     const otpString = Array.isArray(otp) ? otp.join('') : String(otp);
 
@@ -442,9 +445,9 @@ const SignUpForm = () => {
       });
 
       if (res.data.success) {
-        setFormStage('completed');
-        setErrors({});
-      } else {
+      navigate('/verifyMobile', { state: { email: formData.email } });
+      }
+      else {
         setErrors({ general: res.data.message || 'OTP verification failed' });
       }
     } catch (err) {
@@ -453,6 +456,7 @@ const SignUpForm = () => {
       setIsLoading(false);
     }
   };
+
 
   const renderFormFields = () => (
     <>
