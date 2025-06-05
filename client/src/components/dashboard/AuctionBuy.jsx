@@ -21,8 +21,8 @@ const AuctionBuy = () => {
   // --- fetchProducts must be defined before useEffect ---
   const fetchProducts = useCallback(async () => {
     try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      const response = await axios.get(`http://localhost:8000/api/auction/products/${userData.id || '12345'}`);
+      const userData = JSON.parse(localStorage.getItem('authToken') || '{}');
+      const response = await axios.get(`http://localhost:8080/api/auction/products/${userData.id || '12345'}`);
       setProducts(response.data.products);
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -94,7 +94,7 @@ const AuctionBuy = () => {
     setBidding(true);
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      await axios.post('http://localhost:8000/api/auction/place-bid', {
+      await axios.post('http://localhost:8080/api/auction/place-bid', {
         product_id: selectedProduct._id,
         bidder_name: userData.name || 'Anonymous Bidder',
         bidder_id: userData.id || '12345',

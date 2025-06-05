@@ -90,7 +90,7 @@ const AuctionSell = () => {
         seller_location: formData.seller_location
       };
 
-      const response = await fetch('http://localhost:8000/api/auction/create-product', {
+      const response = await fetch('http://localhost:8080/api/auction/create-product', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

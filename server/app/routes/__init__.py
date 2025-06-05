@@ -2,6 +2,7 @@ from flask import Flask
 from .auth import auth_bp
 from .products import products_bp
 from .cart import cart_bp
+from .auction import auction_bp
 
 def register_routes(app: Flask):
     """
@@ -11,6 +12,7 @@ def register_routes(app: Flask):
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
     app.register_blueprint(products_bp, url_prefix='/api/v1/products')
     app.register_blueprint(cart_bp, url_prefix='/api/v1/cart')
+    app.register_blueprint(auction_bp,url_prefix='/api/auction')
 
     
 
