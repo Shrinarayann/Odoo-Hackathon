@@ -161,196 +161,9 @@ def create_auction_product():
         logger.exception(f"Unexpected error creating auction product by {user_id if 'user_id' in locals() else 'unknown user'}:")
         return jsonify({'success': False, 'message': 'An unexpected error occurred on the server.'}), 500
 
-# ... (rest of your auction_bp routes: get_auction_products, place_bid, etc.)
 
 
 # auction_routes.py
-
-# ... (imports and other routes remain the same) ...
-from flask import request, jsonify
-from datetime import datetime
-
-
-from mongoengine.queryset.visitor import Q # Required for complex queries
-
-
-@auction_bp.route('/products/<string:user_id_from_path>', methods=['GET'])
-def get_auction_products(user_id_from_path: str):
-    """
-    Get all active auction products for any user to view.
-    This endpoint is public and does not filter by seller.
-    Supports pagination, search, category filtering, and sorting.
-    The user_id_from_path parameter is accepted to match client requests but is not used for filtering products.
-    """
-    try:
-        # Log the user_id from path if needed, e.g., for analytics or context
-        # logger.info(f"Fetching auction products for request associated with user_id_from_path: {user_id_from_path}")
-
-        # Basic query conditions: only get products that are currently active
-        query_conditions = Q(status='active') & Q(auction_end_time__gt=datetime.utcnow())
-
-        # Search term filter (applies to product_name and product_description)
-        search_query = request.args.get('search', None)
-        if search_query:
-            query_conditions &= (Q(product_name__icontains=search_query) | \
-                                 Q(product_description__icontains=search_query))
-
-        # Category filter
-        category_filter = request.args.get('category', None)
-        if category_filter and category_filter.lower() != 'all':
-            query_conditions &= Q(category=category_filter)
-
-        # Pagination parameters
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 20)) # Default limit 20, as in original
-        offset = (page - 1) * limit
-
-        # Sorting
-        sort_criteria = request.args.get('sort_by', 'ending_soon') # Default as in frontend
-        
-        # Determine sort field based on criteria
-        if sort_criteria == 'newest':
-            sort_field = '-created_at'
-        elif sort_criteria == 'price_low':
-            sort_field = '+current_highest_bid' # Assuming current_highest_bid, or base_price if no bids
-        elif sort_criteria == 'price_high':
-            sort_field = '-current_highest_bid'
-        elif sort_criteria == 'ending_soon':
-            sort_field = '+auction_end_time'
-        else: # Default sort
-            sort_field = '+auction_end_time'
-
-
-        # Fetch the products from the database with filters, sorting, and pagination
-        auction_products_query = AuctionProduct.objects(query_conditions)
-        
-        total_products = auction_products_query.count()
-        auction_products = auction_products_query.order_by(sort_field).skip(offset).limit(limit)
-
-        # Serialize the products into a JSON-friendly list
-        products_list = []
-        for p in auction_products:
-            products_list.append({
-                '_id': str(p.id),
-                'product_name': p.product_name,
-                'product_description': p.product_description,
-                'category': p.category,
-                'condition': p.condition,
-                'seller_location': p.seller_location,
-                'brand': p.brand,
-                'model': p.model,
-                'image_url': p.image_url,
-                'base_price': p.base_price,
-                'current_highest_bid': p.current_highest_bid,
-                'highest_bidder_id': str(p.highest_bidder_id.id) if p.highest_bidder_id else None,
-                'highest_bidder': p.highest_bidder_name, # Frontend expects 'highest_bidder' for the name
-                'auction_start_time': p.auction_start_time.isoformat(),
-                'auction_end_time': p.auction_end_time.isoformat(),
-                'bid_history': [{
-                    'bidder_id': str(b.bidder_id.id) if b.bidder_id else None, # Added check for b.bidder_id
-                    'bidder_name': b.bidder_name,
-                    'bid_amount': b.bid_amount,
-                    'timestamp': b.timestamp.isoformat()
-                } for b in p.bid_history],
-                'status': p.status,
-                'seller_id': str(p.seller_id.id) if p.seller_id else None, # Added check for p.seller_id
-                'seller_name': p.seller_name,
-                'created_at': p.created_at.isoformat()
-            })
-
-        return jsonify({
-            'success': True,
-            'products': products_list,
-            'pagination': {
-                'page': page,
-                'limit': limit,
-                'total_products': total_products,
-                'total_pages': (total_products + limit - 1) // limit if limit > 0 else 0
-            },
-            # Optionally, echo back applied filters/sorting for frontend confirmation
-            'filters_applied': {
-                'search_query': search_query,
-                'category': category_filter,
-                'sort_by': sort_criteria
-            }
-        }), 200
-
-    except Exception as e:
-        # Assuming logger is configured
-        # logger.error(f"Error fetching auction products (path user_id: {user_id_from_path}): {str(e)}")
-        print(f"Error fetching auction products: {str(e)}") # Fallback print if logger not available
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
-
-# @auction_bp.route('/products', methods=['GET'])
-
-# def get_auction_products():
-#     """
-#     Get all active auction products for any user to view.
-#     This endpoint is now public and does not filter by seller.
-#     """
-
-#     try:
-#         # Basic filters: only get products that are currently active
-#         query_filters = {
-#             'status': 'active',
-#             'auction_end_time__gt': datetime.utcnow()
-#         }
-
-
-#         # Pagination parameters from the request query string (e.g., /products?page=1&limit=10)
-#         page = int(request.args.get('page', 1))
-#         limit = int(request.args.get('limit', 20))
-#         offset = (page - 1) * limit
-
-#         # Fetch the products from the database with pagination and sorting
-#         auction_products = AuctionProduct.objects(**query_filters).order_by('+auction_end_time').skip(offset).limit(limit)
-#         total_products = AuctionProduct.objects(**query_filters).count()
-
-#         # Serialize the products into a JSON-friendly list
-#         products_list = []
-#         for p in auction_products:
-#             products_list.append({
-#                 '_id': str(p.id),
-#                 'product_name': p.product_name,
-#                 'product_description': p.product_description,
-#                 'category': p.category,
-#                 'condition': p.condition,
-#                 'seller_location': p.seller_location,
-#                 'brand': p.brand,
-#                 'model': p.model,
-#                 'image_url': p.image_url,
-#                 'base_price': p.base_price,
-#                 'current_highest_bid': p.current_highest_bid,
-#                 'highest_bidder_id': str(p.highest_bidder_id.id) if p.highest_bidder_id else None,
-#                 'highest_bidder': p.highest_bidder_name,
-#                 'auction_start_time': p.auction_start_time.isoformat(),
-#                 'auction_end_time': p.auction_end_time.isoformat(),
-#                 'bid_history': [{
-#                     'bidder_id': str(b.bidder_id.id),
-#                     'bidder_name': b.bidder_name,
-#                     'bid_amount': b.bid_amount,
-#                     'timestamp': b.timestamp.isoformat()
-#                 } for b in p.bid_history],
-#                 'status': p.status,
-#                 'seller_id': str(p.seller_id.id),
-#                 'seller_name': p.seller_name,
-#                 'created_at': p.created_at.isoformat()
-#             })
-
-#         return jsonify({
-#             'success': True,
-#             'products': products_list,
-#             'pagination': {
-#                 'page': page,
-#                 'limit': limit,
-#                 'total_products': total_products,
-#                 'total_pages': (total_products + limit - 1) // limit if limit > 0 else 0
-#             }
-#         }), 200
-
-#     except Exception as e:
-#         logger.error(f"Error fetching auction products: {str(e)}")
-#         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
 
 
 @auction_bp.route('/place-bid', methods=['POST'])
@@ -402,44 +215,121 @@ def place_bid():
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
 
 
-@auction_bp.route('/product/<product_id_str>', methods=['GET'])
-def get_single_auction_product(product_id_str):
-    """Get details for a single auction product."""
-    try:
-        product = AuctionProduct.objects.get(id=product_id_str)
-        product_data = {
-            '_id': str(product.id),
-            'product_name': product.product_name,
-            'product_description': product.product_description,
-            'category': product.category,
-            'condition': product.condition,
-            'seller_location': product.seller_location,
-            'brand': product.brand,
-            'model': product.model,
-            'image_url': product.image_url,
-            'base_price': product.base_price,
-            'current_highest_bid': product.current_highest_bid,
-            'highest_bidder_id': str(product.highest_bidder_id.id) if product.highest_bidder_id else None,
-            'highest_bidder': product.highest_bidder_name,
-            'auction_start_time': product.auction_start_time.isoformat(),
-            'auction_end_time': product.auction_end_time.isoformat(),
-            'bid_history': [{
-                'bidder_id': str(b.bidder_id.id),
-                'bidder_name': b.bidder_name,
-                'bid_amount': b.bid_amount,
-                'timestamp': b.timestamp.isoformat()
-            } for b in product.bid_history],
-            'status': product.status,
-            'seller_id': str(product.seller_id.id),
-            'seller_name': product.seller_name,
-            'created_at': product.created_at.isoformat()
-        }
-        return jsonify({'success': True, 'product': product_data}), 200
+# @auction_bp.route('/product/<product_id_str>', methods=['GET'])
+# def get_single_auction_product(product_id_str):
+#     """Get details for a single auction product."""
+#     try:
+#         product = AuctionProduct.objects.get(id=product_id_str)
+#         product_data = {
+#             '_id': str(product.id),
+#             'product_name': product.product_name,
+#             'product_description': product.product_description,
+#             'category': product.category,
+#             'condition': product.condition,
+#             'seller_location': product.seller_location,
+#             'brand': product.brand,
+#             'model': product.model,
+#             'image_url': product.image_url,
+#             'base_price': product.base_price,
+#             'current_highest_bid': product.current_highest_bid,
+#             'highest_bidder_id': str(product.highest_bidder_id.id) if product.highest_bidder_id else None,
+#             'highest_bidder': product.highest_bidder_name,
+#             'auction_start_time': product.auction_start_time.isoformat(),
+#             'auction_end_time': product.auction_end_time.isoformat(),
+#             'bid_history': [{
+#                 'bidder_id': str(b.bidder_id.id),
+#                 'bidder_name': b.bidder_name,
+#                 'bid_amount': b.bid_amount,
+#                 'timestamp': b.timestamp.isoformat()
+#             } for b in product.bid_history],
+#             'status': product.status,
+#             'seller_id': str(product.seller_id.id),
+#             'seller_name': product.seller_name,
+#             'created_at': product.created_at.isoformat()
+#         }
+#         return jsonify({'success': True, 'product': product_data}), 200
 
-    except DoesNotExist:
-        return jsonify({'success': False, 'message': 'Auction product not found'}), 404
-    except ValidationError:
-        return jsonify({'success': False, 'message': 'Invalid product ID format'}), 400
+#     except DoesNotExist:
+#         return jsonify({'success': False, 'message': 'Auction product not found'}), 404
+#     except ValidationError:
+#         return jsonify({'success': False, 'message': 'Invalid product ID format'}), 400
+#     except Exception as e:
+#         logger.error(f"Error fetching single auction product {product_id_str}: {str(e)}")
+#         return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+from flask import jsonify # Ensure jsonify is imported
+# Assuming auction_bp, AuctionProduct, logger, DoesNotExist, ValidationError are defined/imported
+# from mongoengine.errors import DoesNotExist, ValidationError # if using mongoengine
+# import logging # Example: logger = logging.getLogger(__name__)
+
+# If logger is not configured, replace logger.error with print for debugging
+# For example, if you have: from .. import logger
+
+@auction_bp.route('/products', methods=['GET']) # Changed route from /product/<product_id_str>
+def get_all_auction_products(): # Renamed function and removed product_id_str parameter
+    """Get all active auction products."""
+    try:
+        # Fetch all products. Filtering for "active" status as per example and typical use case.
+        # If you need all products regardless of status, use AuctionProduct.objects.all()
+        all_products = AuctionProduct.objects.filter(status="active")
+
+        products_data_list = []
+        for product in all_products:
+            # Safely access brand and model, as they might not be present on all documents
+            brand = getattr(product, 'brand', None)
+            model = getattr(product, 'model', None)
+
+            # Safely access .id attribute for reference fields
+            highest_bidder_id_str = None
+            if product.highest_bidder_id and hasattr(product.highest_bidder_id, 'id'):
+                highest_bidder_id_str = str(product.highest_bidder_id.id)
+
+            seller_id_str = None
+            if product.seller_id and hasattr(product.seller_id, 'id'):
+                seller_id_str = str(product.seller_id.id)
+
+            bid_history_data = []
+            for b in product.bid_history:
+                bidder_id_str = None
+                if b.bidder_id and hasattr(b.bidder_id, 'id'):
+                    bidder_id_str = str(b.bidder_id.id)
+                bid_history_data.append({
+                    'bidder_id': bidder_id_str,
+                    'bidder_name': b.bidder_name,
+                    'bid_amount': b.bid_amount,
+                    'timestamp': b.timestamp.isoformat()
+                })
+
+            product_data = {
+                '_id': str(product.id),
+                'product_name': product.product_name,
+                'product_description': product.product_description,
+                'category': product.category,
+                'condition': product.condition,
+                'seller_location': product.seller_location,
+                'brand': brand,
+                'model': model,
+                'image_url': product.image_url,
+                'base_price': product.base_price,
+                'current_highest_bid': product.current_highest_bid,
+                'highest_bidder_id': highest_bidder_id_str,
+                'highest_bidder': product.highest_bidder_name, # Corresponds to 'highest_bidder_name' in DB model
+                'auction_start_time': product.auction_start_time.isoformat(),
+                'auction_end_time': product.auction_end_time.isoformat(),
+                'bid_history': bid_history_data,
+                'status': product.status,
+                'seller_id': seller_id_str,
+                'seller_name': product.seller_name,
+                'created_at': product.created_at.isoformat(),
+                # 'updated_at': product.updated_at.isoformat() # Add if needed
+            }
+            products_data_list.append(product_data)
+
+        return jsonify({'success': True, 'products': products_data_list}), 200
+
     except Exception as e:
-        logger.error(f"Error fetching single auction product {product_id_str}: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+        # Replace with your actual logger if available
+        print(f"Error fetching all auction products: {str(e)}")
+        # logger.error(f"Error fetching all auction products: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred while fetching products'}), 500
