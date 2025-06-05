@@ -1,14 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { Trash, ShoppingCart, UserCircle2 } from 'lucide-react';
-
-// Initial cart data
-const initialCartItems = [
-  { id: 1, name: 'Product 1', price: 1000 },
-  { id: 2, name: 'Product 2', price: 2000 },
-  { id: 3, name: 'Product 3', price: 1500 },
-  { id: 4, name: 'Product 4', price: 3000 },
-];
 
 // Confirmation modal component
 const ConfirmationModal = ({ isOpen, onConfirm, onCancel, message }) => {
@@ -38,31 +31,63 @@ const ConfirmationModal = ({ isOpen, onConfirm, onCancel, message }) => {
 };
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cartItems, setCartItems] = useState([]);
   const [deleteId, setDeleteId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Handler to open confirmation modal before deleting
+  // Fetch cart data on mount
+  useEffect(() => {
+    const fetchCart = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        const res = await axios.get('http://localhost:8080/api/v1/cart', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setCartItems(res.data.cart || []);
+      } catch (err) {
+        console.error('Failed to load cart:', err);
+      }
+    };
+
+    fetchCart();
+  }, []);
+
   const confirmDelete = (itemId) => {
     setDeleteId(itemId);
     setIsModalOpen(true);
   };
 
-  // Delete item after confirmation
-  const deleteFromCart = () => {
-    setCartItems((prevItems) => prevItems.filter((i) => i.id !== deleteId));
-    setIsModalOpen(false);
-    setDeleteId(null);
+  const deleteFromCart = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      await axios.post(
+        'http://localhost:8080/api/v1/cart/delete',
+        { productId: deleteId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Remove item from local state after successful deletion
+      setCartItems((prevItems) => prevItems.filter((i) => i.id !== deleteId));
+    } catch (err) {
+      console.error('Failed to delete item from cart:', err);
+    } finally {
+      setIsModalOpen(false);
+      setDeleteId(null);
+    }
   };
 
-  // Cancel deletion
   const cancelDelete = () => {
     setIsModalOpen(false);
     setDeleteId(null);
   };
 
-  // Navigate to payment gateway for buying
   const handleItemClick = (itemId) => {
     navigate(`/paymentgateway?id=${itemId}`);
   };
@@ -82,7 +107,7 @@ const Cart = () => {
             <img
               src="/logo.png"
               alt="Logo"
-              className="h-20 w-auto transition-transform hover:scale-110"
+              className="h-14 w-auto transition-transform hover:scale-110"
               loading="lazy"
             />
           </Link>
@@ -93,11 +118,13 @@ const Cart = () => {
           >
             <UserCircle2 className="w-7 h-7 text-gray-300" />
           </button>
+        console.log(cartItems)
         </header>
 
         {/* Cart Title */}
         <h1 className="text-white text-4xl font-extrabold mb-8 text-center tracking-wide drop-shadow-lg">
-          Your Cart <ShoppingCart className="inline-block w-9 h-9 ml-2 text-indigo-400 animate-pulse" />
+          Your Cart{' '}
+          <ShoppingCart className="inline-block w-9 h-9 ml-2 text-indigo-400 animate-pulse" />
         </h1>
 
         {/* Cart Items */}
@@ -126,8 +153,12 @@ const Cart = () => {
                 aria-label={`Buy ${item.name} for ₹${item.price}`}
               >
                 <div className="flex flex-col">
-                  <span className="text-indigo-300 font-bold text-xl tracking-wide">{item.name}</span>
-                  <span className="text-indigo-200 font-mono text-lg">₹ {item.price.toLocaleString()}</span>
+                  <span className="text-indigo-300 font-bold text-xl tracking-wide">
+                    {item.name}
+                  </span>
+                  <span className="text-indigo-200 font-mono text-lg">
+                    ₹ {item.price.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <button
