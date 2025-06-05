@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Loader2, Trash2, Search, ShoppingCart, User } from 'lucide-react';
+import { Trash2, Search, ShoppingCart, User, Loader2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 
 const MyListings = () => {
   const navigate = useNavigate();
@@ -10,8 +10,14 @@ const MyListings = () => {
   const [error, setError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [filters, setFilters] = useState({ search: '' });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    per_page: 10,
+    total: 0,
+    pages: 0,
+  });
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
@@ -26,10 +32,15 @@ const MyListings = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        params: {
+          page,
+          per_page: pagination.per_page,
+        },
       });
 
       if (response.data?.products) {
         setProducts(response.data.products);
+        setPagination(response.data.pagination || { ...pagination, page });
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong.');
@@ -39,11 +50,18 @@ const MyListings = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    fetchProducts(pagination.page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.page]);
 
   const handleSearch = (searchTerm) => {
     setFilters({ ...filters, search: searchTerm });
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.pages) {
+      setPagination((prev) => ({ ...prev, page: newPage }));
+    }
   };
 
   const filteredProducts = products.filter((product) => {
@@ -66,7 +84,7 @@ const MyListings = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setProducts(products.filter((product) => product.id !== productId));
+      setProducts((prev) => prev.filter((product) => product._id !== productId));
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete product.');
     } finally {
@@ -122,7 +140,7 @@ const MyListings = () => {
       <h1 className="text-3xl font-bold mb-6">My Listings</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {filteredProducts.map((product) => (
-          <div key={product.id} className="bg-gray-800 rounded-xl p-4 shadow relative group transition">
+          <div key={product._id || product.id} className="bg-gray-800 rounded-xl p-4 shadow relative group transition">
             <img
               src={product.image_url || 'https://via.placeholder.com/150'}
               alt={product.name}
@@ -135,11 +153,11 @@ const MyListings = () => {
 
             <button
               className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-600"
-              onClick={() => handleDelete(product.id)}
-              disabled={deletingId === product.id}
+              onClick={() => handleDelete(product._id || product.id)}
+              disabled={deletingId === (product._id || product.id)}
               title="Delete"
             >
-              {deletingId === product.id ? (
+              {deletingId === (product._id || product.id) ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <Trash2 className="w-5 h-5" />
@@ -148,6 +166,34 @@ const MyListings = () => {
           </div>
         ))}
       </div>
+
+      {/* Pagination Controls */}
+      {pagination.pages > 1 && (
+        <div className="mt-8 flex justify-center items-center gap-4">
+          <button
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={pagination.page <= 1}
+            className="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-50 hover:bg-gray-600"
+          >
+            Previous
+          </button>
+          <span className="text-gray-400">Page {pagination.page} of {pagination.pages}</span>
+          <button
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={pagination.page >= pagination.pages}
+            className="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-50 hover:bg-gray-600"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      {/* Product Count */}
+      {pagination.total > 0 && (
+        <div className="mt-4 text-center text-gray-400 text-sm">
+          Showing {filteredProducts.length} of {pagination.total} products
+        </div>
+      )}
     </div>
   );
 };

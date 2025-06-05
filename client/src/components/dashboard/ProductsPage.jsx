@@ -15,12 +15,12 @@ const ProductsPage = () => {
   useEffect(() => {
     console.log('ProductsPage useEffect triggered');
     console.log('Location state:', location.state);
-    
+
     const data = location.state?.data;
     console.log("Received products from dashboard:", data);
     console.log("Type of data:", typeof data);
     console.log("Is data an array?", Array.isArray(data));
-    
+
     if (Array.isArray(data)) {
       console.log("Setting products:", data);
       setProducts(data);
@@ -58,7 +58,7 @@ const ProductsPage = () => {
     // Search filter
     if (filters.search) {
       const term = filters.search.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         product.name?.toLowerCase().includes(term) ||
         product.description?.toLowerCase().includes(term) ||
         product.category?.toLowerCase().includes(term);
@@ -188,17 +188,17 @@ const ProductsPage = () => {
         {Array.isArray(filteredProducts) && filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map(product => (
-              <div 
-                key={product.id} 
+              <div
+                key={product.id}
                 className="bg-gray-800 rounded-lg p-4 flex flex-col cursor-pointer hover:bg-gray-750 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300 transform hover:scale-105"
                 onClick={() => handleProductClick(product)}
               >
                 {/* Product Image */}
                 <div className="bg-gray-900 border border-gray-700 rounded-lg w-full h-48 flex items-center justify-center mb-3 overflow-hidden">
                   {product.image_url || product.image ? (
-                    <img 
-                      src={product.image_url || product.image} 
-                      alt={product.name} 
+                    <img
+                      src={product.image_url || product.image}
+                      alt={product.name}
                       className="object-cover h-full w-full transition-transform duration-300 hover:scale-110"
                       onError={(e) => {
                         console.log('Image failed to load:', e.target.src);
@@ -212,7 +212,7 @@ const ProductsPage = () => {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Product Description */}
                 <div className="flex-1 flex flex-col">
                   <div className="font-bold mb-2 text-white text-lg line-clamp-2">{product.name || 'No Name'}</div>
@@ -228,7 +228,7 @@ const ProductsPage = () => {
                       Seller: {product.seller.name} ({product.seller.phone})
                     </div>
                   )}
-                  
+
                   {/* Add to Cart Button */}
                   <button
                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-semibold w-full mt-auto transition-colors"
@@ -246,7 +246,7 @@ const ProductsPage = () => {
               {products.length === 0 ? 'No products found.' : 'No products match your search criteria.'}
             </p>
             <p className="text-gray-500 text-sm">
-              {products.length === 0 
+              {products.length === 0
                 ? `Debug: Products array has ${products.length} items`
                 : `Showing ${filteredProducts.length} of ${products.length} products`
               }
@@ -277,9 +277,9 @@ const ProductsPage = () => {
                 <div className="space-y-4">
                   <div className="bg-gray-900 border border-gray-700 rounded-lg w-full h-80 flex items-center justify-center overflow-hidden">
                     {selectedProduct.image_url || selectedProduct.image ? (
-                      <img 
-                        src={selectedProduct.image_url || selectedProduct.image} 
-                        alt={selectedProduct.name} 
+                      <img
+                        src={selectedProduct.image_url || selectedProduct.image}
+                        alt={selectedProduct.name}
                         className="object-contain h-full w-full"
                         onError={(e) => {
                           console.log('Image failed to load:', e.target.src);
@@ -293,7 +293,7 @@ const ProductsPage = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Status Badges */}
                   <div className="flex gap-2">
                     {selectedProduct.auction_status && (

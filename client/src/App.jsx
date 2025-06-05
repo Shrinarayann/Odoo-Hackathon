@@ -12,6 +12,10 @@ import AddProduct from './components/dashboard/AddProduct';
 import ProductsPage from './components/dashboard/ProductsPage';
 import OtpInput from './components/auth/OtpInput';
 import VerifyMobile from './components/auth/VerifyMobile';
+import Auctions from './components/dashboard/Auctions';
+import Contact from './components/dashboard/Contact';
+import About from './components/dashboard/About';
+
 
 
 function App() {
@@ -24,7 +28,6 @@ function App() {
         <Route path="/otpInput" element={<AuthLayout><OtpInput /></AuthLayout>} />
         <Route path="/verifyMobile" element={<AuthLayout><VerifyMobile /></AuthLayout>} />
 
-
         {/* Dashboard and related routes */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/listings" element={<MyListings />} />
@@ -33,7 +36,9 @@ function App() {
         <Route path="/dashboard/profile" element={<Profile />} />
         <Route path="/dashboard/cart" element={<Cart />} />
         <Route path="/dashboard/products" element={<ProductsPage />} />
-
+        <Route path="/dashboard/auction" element={<Auctions />} />
+        <Route path="/dashboard/about" element={<About />} />
+        <Route path="/dashboard/contact" element={<Contact />} />
       </Routes>
     </Router>
   );

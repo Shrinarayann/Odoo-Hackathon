@@ -291,4 +291,3 @@ const handleFileChange = async (event) => {
 };
 
 export default AddProduct;
-

@@ -3,6 +3,8 @@ import { Menu, Search, ShoppingCart, User, X, Plus, Info, Phone, Package, Monito
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Profile from './Profile';
+import { Typewriter } from 'react-simple-typewriter';
+import { motion } from 'framer-motion';
 
 const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -35,26 +37,15 @@ const Dashboard = () => {
 
   const handleCategoryClick = async (categoryName) => {
     try {
-      console.log('Clicked category:', categoryName); // Debug log
-      
-      const token = localStorage.getItem('authToken');
-      console.log('Token exists:', !!token); // Debug log
-      
+      const token=localStorage.getItem('authToken');
       const response = await axios.get(
         'http://localhost:8080/api/v1/products/search',
-        { 
-          params: { category: categoryName },
-          headers: {
+        { params: { category: categoryName } ,
+        headers: {
             'Authorization': `Bearer ${token}`
-          }
-        }
+          }}
       );
       
-      console.log('API Response:', response); // Debug log
-      console.log('Response data:', response.data); // Debug log
-      console.log('Products array:', response.data?.products); // Debug log
-      
-      // Check if response has the expected structure
       if (response.data && response.data.success && response.data.products) {
         navigate('/dashboard/products', {
           state: { 
@@ -79,6 +70,13 @@ const Dashboard = () => {
       {/* Sidebar */}
       <div className={`fixed top-0 left-0 z-40 w-64 h-screen bg-gray-800 flex flex-col justify-between transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-4 pt-20">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="absolute right-4 top-4 text-gray-400 hover:text-white">
+            <X className="h-6 w-6" />
+          </button>
+          <div className="flex items-center space-x-3 mb-8 mt-4">
+            <User className="h-8 w-8 text-indigo-500" />
+            <span className="text-lg font-semibold text-white">Dashboard</span>
+          </div>
           <nav className="space-y-2">
             {menuItems.map((item, index) => (
               <Link
@@ -116,6 +114,21 @@ const Dashboard = () => {
             <Link to="/dashboard">
               <img src="/logo.png" alt="Logo" className="h-11 w-auto" />
             </Link>
+          </div>
+          <div className="relative w-72 overflow-hidden h-10">
+            <motion.div
+                initial={{ x: -300 }}
+                animate={{ x: 1000 }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+                className="absolute top-0 left-0 text-yellow-300 text-sm font-bold bg-indigo-700 px-3 py-1 rounded-full shadow-md cursor-pointer flex items-center gap-2"
+                onClick={() => navigate('/dashboard/auction')}
+              >
+                🚂 <span>Auction is LIVE now! Click to join 🎉</span>
+            </motion.div>
           </div>
 
           <div className="flex items-center space-x-6">
@@ -168,7 +181,20 @@ const Dashboard = () => {
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900/80 to-transparent flex items-center p-8">
-            <h1 className="text-4xl font-bold text-white">Auction</h1>
+            <h1 className="text-4xl font-bold text-white">
+              <Typewriter
+                words={[
+                  'Explore Sustainable Finds Near You',
+                  'Buy & Sell Pre-loved Products with Purpose',
+                ]}
+                loop={0}
+                cursor
+                cursorStyle="|"
+                typeSpeed={50}
+                deleteSpeed={40}
+                delaySpeed={2000}
+              />
+            </h1>
           </div>
         </div>
 

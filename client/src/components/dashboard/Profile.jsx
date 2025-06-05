@@ -1,22 +1,88 @@
-import React, { useState } from 'react';
-import { ShoppingCart, User, Edit } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShoppingCart, Edit, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import Button from '../ui/Button'; // Adjust path as needed
-import Input from '../ui/Input';   // Adjust path as needed
+import Button from '../ui/Button';
+import Input from '../ui/Input';
+import axios from 'axios';
 
 const Profile = ({
   user = {
     displayName: 'Guest',
     email: 'guest@example.com',
     profilePicture: '',
-    otherInfo: 'Member since 2023',
+    location: 'Chennai',
+    rating: 4.3,
   },
   onClose,
   onSave,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formUser, setFormUser] = useState(user);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [profilePicFile, setProfilePicFile] = useState(null);
+  const [authToken, setAuthToken] = useState(localStorage.getItem('authToken') || '');
+  const wrapperRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        if (onClose) onClose();
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post(
+        'http://localhost:8080/v1/auth/verify-password',
+        { email: user.email, password: oldPassword },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+
+      if (res.data.success) {
+        const formData = new FormData();
+        formData.append('displayName', formUser.displayName);
+        formData.append('location', formUser.location);
+        formData.append('password', newPassword);
+        if (profilePicFile) {
+          formData.append('profilePicture', profilePicFile);
+        }
+
+        await axios.post(
+          'http://localhost:8080/v1/auth/update-profile',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+
+        setIsEditing(false);
+        if (onSave) onSave(formUser);
+      } else {
+        alert('Incorrect old password.');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('An error occurred while saving changes.');
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && ['image/png', 'image/jpeg'].includes(file.type)) {
+      setProfilePicFile(file);
+    } else {
+      alert('Only JPG and PNG images are allowed.');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,120 +92,122 @@ const Profile = ({
     }));
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    setIsEditing(false);
-    if (onSave) onSave(formUser);
-  };
-
   return (
-    <div className="relative w-[370px] bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-8 mx-auto my-10">
-      {/* Close Button */}
-      {onClose && (
-        <button
-          className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl"
-          onClick={onClose}
-          aria-label="Close profile"
-        >
-          &times;
-        </button>
-      )}
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4 py-10">
+      <div
+        ref={wrapperRef}
+        className="w-full max-w-3xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-10 sm:p-12"
+      >
+        {/* Top Bar */}
+        <div className="flex justify-between items-center mb-6">
+          <Link to="/dashboard">
+            <img src="/logo.png" alt="Logo" className="h-10" />
+          </Link>
+          <button onClick={onClose} className="text-white text-2xl hover:text-red-400">&times;</button>
+        </div>
 
-      {/* Top bar: Logo, Cart (as button), Profile */}
-      <div className="flex items-center justify-between mb-8">
-        <img src="/logo.svg" alt="Logo" className="h-8" />
-        <div className="flex items-center gap-4">
-          {/* Cart button navigates to /dashboard/cart */}
-          <button
-            type="button"
-            className="hover:bg-indigo-100/10 rounded-full p-2 transition"
-            aria-label="Open cart"
-            onClick={() => navigate('/dashboard/cart')}
-          >
-            <ShoppingCart className="h-6 w-6 text-gray-300" />
-          </button>
-          {/* Profile icon */}
-          <div className="w-9 h-9 rounded-full border-2 border-indigo-400 flex items-center justify-center">
-            <User className="h-5 w-5 text-indigo-300" />
+        {/* Avatar + Info */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 mb-6">
+          <div className="relative">
+            <div className="w-32 h-32 rounded-full bg-indigo-500 border-4 border-white flex items-center justify-center overflow-hidden">
+              {profilePicFile || formUser.profilePicture ? (
+                <img
+                  src={profilePicFile ? URL.createObjectURL(profilePicFile) : formUser.profilePicture}
+                  alt="Profile"
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <User className="h-20 w-20 text-white" />
+              )}
+            </div>
+            {!isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="absolute -bottom-2 -right-2 bg-indigo-600 text-white rounded-full p-2 shadow-md hover:bg-indigo-700"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="text-white text-center sm:text-left">
+            <h2 className="text-3xl font-bold">{formUser.displayName}</h2>
+            <p className="text-indigo-300">{formUser.email}</p>
+            <p className="text-indigo-400 mt-1">Rating: {formUser.rating} / 5</p>
           </div>
         </div>
-      </div>
 
-      {/* Avatar and Edit */}
-      <div className="flex flex-col items-center mb-6">
-        <div className="relative mb-2">
-          <div className="w-24 h-24 rounded-full border-4 border-indigo-400 bg-transparent flex items-center justify-center">
-            <User className="h-16 w-16 text-indigo-300" />
-          </div>
-          {!isEditing && (
-            <button
-              className="absolute top-2 right-2 bg-transparent text-indigo-400 rounded-full p-1 hover:bg-indigo-100/20"
-              onClick={() => setIsEditing(true)}
-              aria-label="Edit profile"
-            >
-              <Edit className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        {isEditing ? (
-          <form onSubmit={handleSave} className="w-full flex flex-col items-center gap-2 mt-2">
+        {/* Edit Form */}
+        {isEditing && (
+          <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
             <Input
               name="displayName"
+              label="Display Name"
               value={formUser.displayName}
               onChange={handleChange}
-              placeholder="Username"
-              label="Username"
               className="w-full"
-              autoFocus
+            />
+            <select
+              name="location"
+              value={formUser.location}
+              onChange={handleChange}
+              className="bg-white/20 text-white border border-white/30 rounded-xl px-4 py-2 focus:outline-none"
+            >
+              <option value="Chennai">Chennai</option>
+              <option value="Mumbai">Mumbai</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Bangalore">Bangalore</option>
+              {/* Add more as needed */}
+            </select>
+            <Input
+              type="password"
+              label="Old Password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              className="w-full"
             />
             <Input
-              name="email"
-              value={formUser.email}
-              onChange={handleChange}
-              placeholder="Email"
-              label="Email"
-              className="w-full"
-              type="email"
-            />
-            <Input
-              name="otherInfo"
-              value={formUser.otherInfo}
-              onChange={handleChange}
-              placeholder="Other Info"
-              label="Other Info"
+              type="password"
+              label="New Password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               className="w-full"
             />
-            {/* Add more Input fields here for more user info */}
-            <div className="flex gap-2 w-full mt-2">
+            <div>
+              <label className="block text-white mb-1">Profile Picture</label>
+              <input
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={handleFileChange}
+                className="text-white bg-white/10 px-4 py-2 rounded-lg"
+              />
+            </div>
+            <div className="flex gap-4 mt-6 sm:col-span-2">
               <Button type="submit" variant="primary" className="flex-1">
-                Save
+                Save Changes
               </Button>
-              <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsEditing(false)}>
+              <Button type="button" variant="secondary" onClick={() => setIsEditing(false)} className="flex-1">
                 Cancel
               </Button>
             </div>
           </form>
-        ) : (
-          <>
-            <div className="text-2xl font-bold text-white mt-2">{formUser.displayName}</div>
-            <div className="text-indigo-100">{formUser.email}</div>
-            <div className="text-gray-300 text-sm">{formUser.otherInfo}</div>
-          </>
         )}
-      </div>
 
-      {/* Navigation */}
-      <div className="flex flex-col gap-4 mt-6">
-        <Link to="/dashboard/listings">
-          <Button variant="secondary" className="w-full text-center font-semibold">
-            My Listings
-          </Button>
-        </Link>
-        <Link to="/dashboard/purchases">
-          <Button variant="secondary" className="w-full text-center font-semibold">
-            My Purchases
-          </Button>
-        </Link>
+        {/* Navigation Buttons */}
+        {!isEditing && (
+          <div className="flex flex-col sm:flex-row gap-4 mt-8">
+            <Link to="/dashboard/listings" className="flex-1">
+              <Button variant="secondary" className="w-full">
+                My Listings
+              </Button>
+            </Link>
+            <Link to="/dashboard/purchases" className="flex-1">
+              <Button variant="secondary" className="w-full">
+                My Purchases
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
