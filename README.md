@@ -1,5 +1,5 @@
 Odoo Hackathon Project
-Video Link: https://drive.google.com/file/d/1HhUi1uLNUsFLgfF7vjfKxWPRZfWzVGfh/view?usp=drive_link
+Video Link:[ https://drive.google.com/file/d/1HhUi1uLNUsFLgfF7vjfKxWPRZfWzVGfh/view?usp=drive_link](https://drive.google.com/file/d/16l5z4k1wM7Cx68LZBLmKYDjlUjFrDR7L/view?usp=share_link)
 # EcoFinds - Sustainable E-commerce Platform
 
 EcoFinds is a modern e-commerce platform focused on sustainable and eco-friendly products. Built with React, Flask, and MongoDB, it provides a seamless shopping experience with robust features for both buyers and sellers.
@@ -19,12 +19,7 @@ EcoFinds is a modern e-commerce platform focused on sustainable and eco-friendly
   - Category classification
   - Pricing and inventory
   - Product condition
-  - Manufacturing details
-  - Dimensions and weight
-  - Original packaging status
-  - Manual availability
-  - Multiple image support
-
+  
 ### Shopping Experience
 - Intuitive product browsing
 - Advanced search functionality
@@ -41,6 +36,13 @@ EcoFinds is a modern e-commerce platform focused on sustainable and eco-friendly
 - Shopping cart status
 - Purchase history
 
+### Auction 
+- Place a Item to auction
+- Bid to a item
+- Raise BId
+- Reserver Price to avoid low selling
+
+###
 ## Technology Stack
 
 ### Frontend
