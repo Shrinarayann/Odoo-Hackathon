@@ -249,13 +249,17 @@ const SignUpForm = () => {
   return (
     <div className="w-full max-w-md">
       <div className="text-center mb-8 animate-pulse">
-        <h1 className="text-3xl font-extrabold text-indigo-400 tracking-wide">ECOFINDS</h1>
+        <div className="text-center mb-8 animate-pulse flex flex-col items-center gap-2">
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="h-30 w-35 sm:h-30 sm:w-40 transition-transform hover:scale-110"
+            loading="lazy"
+            />
+        </div>
       </div>
 
       <div className="text-center mb-8">
-        <div className="inline-flex h-20 w-20 items-center justify-center rounded-full border border-gray-700 bg-[#0f172a] mb-4">
-          <User className="h-10 w-10 text-indigo-500" strokeWidth={1.5} />
-        </div>
         <h2 className="text-2xl font-bold text-white">Create Your Account</h2>
         {formStage === 'initial' && (
           <p className="text-gray-400 mt-2">Fill in your details to get started</p>
