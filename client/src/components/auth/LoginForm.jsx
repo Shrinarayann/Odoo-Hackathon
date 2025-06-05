@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 
@@ -36,38 +36,30 @@ const LoginForm = () => {
       const result = await response.json();
 
       if (response.ok) {
-        // Store JWT token in localStorage
         if (result.token) {
           localStorage.setItem('authToken', result.token);
           console.log('Token stored successfully');
         }
 
-        // Optional: Store user info if provided in response
         if (result.user) {
           localStorage.setItem('userInfo', JSON.stringify(result.user));
         }
 
-        // Optional: Show success message
         console.log('Login successful');
-        
-        // Navigate to dashboard
         navigate('/dashboard');
       } else {
-        // Handle different types of errors
         if (result.errors) {
-          // If backend returns field-specific errors
           setErrors(result.errors);
         } else {
-          // General error message
-          setErrors({ 
-            general: result.error || result.message || 'Login failed. Please try again.' 
+          setErrors({
+            general: result.error || result.message || 'Login failed. Please try again.',
           });
         }
       }
     } catch (error) {
       console.error('Login error:', error);
-      setErrors({ 
-        general: 'Network error. Please check your connection and try again.' 
+      setErrors({
+        general: 'Network error. Please check your connection and try again.',
       });
     } finally {
       setIsLoading(false);
@@ -76,17 +68,19 @@ const LoginForm = () => {
 
   return (
     <div className="w-full max-w-md">
-      <div className="text-center mb-8">
-        <div className="inline-flex h-20 w-20 items-center justify-center rounded-full border border-gray-700 bg-gray-800/50 mb-4">
-          <User className="h-10 w-10 text-indigo-500" strokeWidth={1.5} />
-        </div>
-        <h2 className="text-2xl font-bold text-white">Welcome Back</h2>
-        <p className="text-gray-400 mt-2">Sign in to your account</p>
+      {/* Centered Logo and App Name */}
+      <div className="text-center mb-8 animate-pulse flex flex-col items-center gap-2">
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="h-30 w-35 sm:h-30 sm:w-40 transition-transform hover:scale-110"
+            loading="lazy"
+          />
+        
       </div>
 
       <div className="bg-gray-900/40 backdrop-blur-lg border border-gray-800 rounded-xl shadow-2xl p-8">
         <form onSubmit={handleSubmit}>
-          {/* General Error Message */}
           {errors.general && (
             <div className="mb-4 p-3 bg-red-600/20 border border-red-600/50 rounded-lg text-red-200 text-sm">
               {errors.general}
@@ -105,7 +99,6 @@ const LoginForm = () => {
               className="pl-10"
               required
             />
-            <User className="absolute left-3 top-9 h-5 w-5 text-gray-500" />
           </div>
 
           <div className="relative">
