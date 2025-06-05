@@ -105,7 +105,7 @@ const AuctionSell = () => {
       }
 
       alert('Auction created successfully!');
-      navigate('/dashboard/auction');
+      navigate('/dashboard/auctionpage');
     } catch (error) {
       alert(error.message);
     }

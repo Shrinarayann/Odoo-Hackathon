@@ -365,7 +365,7 @@ const AuctionBuy = () => {
         >
           <div className="flex items-center mb-4 lg:mb-0">
             <button
-              onClick={() => navigate('/dashboard/auction')}
+              onClick={() => navigate('/dashboard/auctionpage')}
               className="flex items-center text-indigo-400 hover:text-white transition-colors mr-4"
             >
               <ArrowLeft className="mr-2 h-5 w-5" />
