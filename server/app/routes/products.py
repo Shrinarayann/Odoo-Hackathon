@@ -306,3 +306,83 @@ def get_all_products():
             "error": "Failed to fetch products", 
             "details": str(e)
         }), 500
+
+
+
+@products_bp.route('/<product_id>', methods=['PUT'])
+@token_required
+def update_product(product_id):
+    try:
+        user_payload = request.current_user
+        user_id = user_payload.get('user_id')
+
+        # Parse JSON request
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+
+        # Validate required fields
+        required_fields = ['name', 'description', 'price', 'quantity']
+        for field in required_fields:
+            if field not in data or not str(data[field]).strip():
+                return jsonify({'success': False, 'message': f'{field.capitalize()} is required'}), 400
+
+        # Parse and validate values
+        try:
+            price = float(data['price'])
+            quantity = int(data['quantity'])
+            if price < 0 or quantity < 0:
+                return jsonify({'success': False, 'message': 'Price and quantity must be non-negative'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Invalid price or quantity'}), 400
+
+        # Fetch product and ensure it belongs to the user
+        product = Product.objects(id=product_id, user_id=user_id).first()
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found or permission denied'}), 404
+
+        # Update fields
+        product.name = data['name'].strip()
+        product.description = data['description'].strip()
+        product.price = price
+        product.quantity = quantity
+
+        # Optional fields
+        optional_fields = ['category', 'condition', 'brand', 'model', 'seller_location', 'image_url']
+        for field in optional_fields:
+            if field in data:
+                setattr(product, field, data[field].strip() if data[field] else '')
+
+        # Save updated product (timestamps are handled in model)
+        product.save()
+
+        updated_product_data = {
+            '_id': str(product.id),
+            'id': str(product.id),
+            'name': product.name,
+            'description': product.description,
+            'category': product.category,
+            'price': product.price,
+            'quantity': product.quantity,
+            'condition': product.condition,
+            'image_url': product.image_url,
+            'brand': product.brand,
+            'model': product.model,
+            'seller_location': product.seller_location,
+            'status': product.status,
+            'auction_status': product.auction_status,
+            'created_at': product.created_at.isoformat() if product.created_at else None,
+            'updated_at': product.updated_at.isoformat() if product.updated_at else None,
+        }
+
+        return jsonify({
+            'success': True,
+            'message': 'Product updated successfully',
+            'product': updated_product_data
+        }), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Internal server error: {str(e)}'}), 500
+
