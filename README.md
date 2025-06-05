@@ -19,12 +19,7 @@ EcoFinds is a modern e-commerce platform focused on sustainable and eco-friendly
   - Category classification
   - Pricing and inventory
   - Product condition
-  - Manufacturing details
-  - Dimensions and weight
-  - Original packaging status
-  - Manual availability
-  - Multiple image support
-
+  
 ### Shopping Experience
 - Intuitive product browsing
 - Advanced search functionality
@@ -41,6 +36,13 @@ EcoFinds is a modern e-commerce platform focused on sustainable and eco-friendly
 - Shopping cart status
 - Purchase history
 
+### Auction 
+- Place a Item to auction
+- Bid to a item
+- Raise BId
+- Reserver Price to avoid low selling
+
+###
 ## Technology Stack
 
 ### Frontend
