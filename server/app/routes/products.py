@@ -17,38 +17,74 @@ def get_user_products():
         user_payload = request.current_user
         user_id = user_payload.get('user_id')
 
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        
+        # Ensure valid pagination values
+        page = max(1, page)
+        per_page = min(max(1, per_page), 100)  # Limit max per_page to 100
+
         user = User.objects(id=user_id).first()
         if not user:
             return jsonify({'success': False, 'message': 'User not found'}), 404
 
-        products = user.products  # This is a list of Product references
+        # Get all products for this user
+        all_products = user.products if hasattr(user, 'products') and user.products else []
+        
+        # Calculate pagination
+        total_products = len(all_products)
+        total_pages = (total_products + per_page - 1) // per_page  # Ceiling division
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        
+        # Get paginated products
+        paginated_products = all_products[start_idx:end_idx]
 
         product_list = []
-        for product in products:
-            product_list.append({
-                'id': str(product.id),
-                'name': product.name,
-                'description': product.description,
-                'category': product.category,
-                'price': product.price,
-                'quantity': product.quantity,
-                'condition': product.condition,
-                'image_url': product.image_url,
-                'brand': product.brand,
-                'model': product.model,
-                'seller_location': product.seller_location,
-                'status': product.status,
-                'auction_status': product.auction_status,
-                'created_at': product.created_at.isoformat(),
-                'updated_at': product.updated_at.isoformat(),
-            })
+        for product in paginated_products:
+            try:
+                product_data = {
+                    '_id': str(product.id),  # Frontend expects _id
+                    'id': str(product.id),   # Also provide id for compatibility
+                    'name': getattr(product, 'name', ''),
+                    'description': getattr(product, 'description', ''),
+                    'category': getattr(product, 'category', ''),
+                    'price': getattr(product, 'price', 0),
+                    'quantity': getattr(product, 'quantity', 0),
+                    'condition': getattr(product, 'condition', ''),
+                    'image_url': getattr(product, 'image_url', ''),
+                    'brand': getattr(product, 'brand', ''),
+                    'model': getattr(product, 'model', ''),
+                    'seller_location': getattr(product, 'seller_location', ''),
+                    'status': getattr(product, 'status', 'active'),
+                    'auction_status': getattr(product, 'auction_status', None),
+                    'created_at': product.created_at.isoformat() if hasattr(product, 'created_at') and product.created_at else None,
+                    'updated_at': product.updated_at.isoformat() if hasattr(product, 'updated_at') and product.updated_at else None,
+                }
+                product_list.append(product_data)
+            except Exception as product_error:
+                print(f"Error processing product {product.id}: {str(product_error)}")
+                continue
+
+        # Prepare pagination info
+        pagination_info = {
+            'page': page,
+            'per_page': per_page,
+            'total': total_products,
+            'pages': total_pages
+        }
 
         return jsonify({
             'success': True,
-            'products': product_list
+            'products': product_list,
+            'pagination': pagination_info
         }), 200
 
+    except ValueError as ve:
+        return jsonify({'success': False, 'message': f'Invalid pagination parameters: {str(ve)}'}), 400
     except Exception as e:
+        print(f"Error in get_user_products: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
@@ -192,223 +228,81 @@ def get_products_by_category():
     except Exception as e:
         print(f"Error in get_products_by_category: {str(e)}")
         return jsonify({'success': False, 'message': 'Internal server error', 'error': str(e)}), 500
+    
 
- # Set up logging
-# logger = logging.getLogger(__name__)
+@products_bp.route('/all', methods=['GET'])
+@token_required
+def get_all_products():
+    """Get all products excluding current user's own products"""
+    try:
+        current_user = request.current_user
+        user_id = current_user.get('user_id')
+    
+        # Fetch all products except those belonging to the current user
+        products = Product.objects(user_id__ne=user_id)
 
-# @products_bp.route('/', methods=['POST'])
-# @token_required
-# def create_product():
-#     """Create a new product listing"""
-#     try:
-#         # Get current user from token
-#         current_user_id = request.current_user['user_id']
-#         user = User.objects(id=current_user_id).first()
-        
-#         if not user:
-#             return jsonify({'error': 'User not found'}), 404
-        
-#         # Get request data
-#         data = request.get_json()
-        
-#         # Validate required fields
-#         required_fields = ['name', 'description', 'category', 'price', 'quantity', 'condition']
-#         for field in required_fields:
-#             if field not in data or not data[field]:
-#                 return jsonify({'error': f'{field} is required'}), 400
-        
-#         # Validate price and quantity are positive
-#         if data['price'] < 0:
-#             return jsonify({'error': 'Price must be non-negative'}), 400
-#         if data['quantity'] < 0:
-#             return jsonify({'error': 'Quantity must be non-negative'}), 400
-        
-#         # Create product
-#         product = Product(
-#             user_id=user,
-#             name=data['name'],
-#             description=data['description'],
-#             category=data['category'],
-#             price=data['price'],
-#             quantity=data['quantity'],
-#             condition=data['condition'],
-#             image_url=data.get('image_url', ''),
-#             brand=data.get('brand', ''),
-#             model=data.get('model', ''),
-#             seller_location=data.get('seller_location', ''),
-#             is_sold=data.get('is_sold', False)
-#         )
-        
-#         product.save()
-        
-#         return jsonify({
-#             'message': 'Product created successfully',
-#             'product': {
-#                 'id': str(product.id),
-#                 'name': product.name,
-#                 'description': product.description,
-#                 'category': product.category,
-#                 'price': product.price,
-#                 'quantity': product.quantity,
-#                 'condition': product.condition,
-#                 'image_url': product.image_url,
-#                 'brand': product.brand,
-#                 'model': product.model,
-#                 'seller_location': product.seller_location,
-#                 'is_sold': product.is_sold,
-#                 'created_at': product.created_at.isoformat(),
-#                 'updated_at': product.updated_at.isoformat()
-#             }
-#         }), 201
-        
-#     except ValidationError as e:
-#         return jsonify({'error': f'Validation error: {str(e)}'}), 400
-#     except Exception as e:
-#         logger.error(f"Error creating product: {str(e)}")
-#         return jsonify({'error': 'Internal server error'}), 500
-
-
-
-# @products_bp.route('/<product_id>', methods=['PUT'])
-# @token_required
-# def update_product(product_id):
-#     """Update a specific product (only if owned by current user)"""
-#     try:
-#         # Get current user from token
-#         current_user_id = request.current_user['user_id']
-#         user = User.objects(id=current_user_id).first()
-        
-#         if not user:
-#             return jsonify({'error': 'User not found'}), 404
-        
-#         # Find product
-#         product = Product.objects(id=product_id, user_id=user).first()
-        
-#         if not product:
-#             return jsonify({'error': 'Product not found or not owned by user'}), 404
-        
-#         # Get request data
-#         data = request.get_json()
-        
-#         # Update fields if provided
-#         updateable_fields = [
-#             'name', 'description', 'category', 'price', 'quantity', 
-#             'condition', 'image_url', 'brand', 'model', 'seller_location', 'is_sold'
-#         ]
-        
-#         for field in updateable_fields:
-#             if field in data:
-#                 # Validate numeric fields
-#                 if field == 'price' and data[field] < 0:
-#                     return jsonify({'error': 'Price must be non-negative'}), 400
-#                 if field == 'quantity' and data[field] < 0:
-#                     return jsonify({'error': 'Quantity must be non-negative'}), 400
+        product_list = []
+        for product in products:
+            try:
+                # Handle potential missing fields gracefully
+                product_data = {
+                    "id": str(product.id),
+                    "name": getattr(product, 'name', 'Unknown'),
+                    "description": getattr(product, 'description', ''),
+                    "price": getattr(product, 'price', 0),
+                    "quantity": getattr(product, 'quantity', 0),
+                    "category": getattr(product, 'category', 'Uncategorized'),
+                    "image_url": getattr(product, 'image_url', ''),
+                    "brand": getattr(product, 'brand', ''),
+                    "model": getattr(product, 'model', ''),
+                    "condition": getattr(product, 'condition', ''),
+                    "seller_location": getattr(product, 'seller_location', ''),
+                    "is_sold": getattr(product, 'is_sold', False),
+                }
                 
-#                 setattr(product, field, data[field])
-        
-#         # Update timestamp
-#         product.updated_at = datetime.utcnow()
-#         product.save()
-        
-#         return jsonify({
-#             'message': 'Product updated successfully',
-#             'product': {
-#                 'id': str(product.id),
-#                 'name': product.name,
-#                 'description': product.description,
-#                 'category': product.category,
-#                 'price': product.price,
-#                 'quantity': product.quantity,
-#                 'condition': product.condition,
-#                 'image_url': product.image_url,
-#                 'brand': product.brand,
-#                 'model': product.model,
-#                 'seller_location': product.seller_location,
-#                 'is_sold': product.is_sold,
-#                 'created_at': product.created_at.isoformat(),
-#                 'updated_at': product.updated_at.isoformat()
-#             }
-#         }), 200
-        
-#     except DoesNotExist:
-#         return jsonify({'error': 'Product not found'}), 404
-#     except ValidationError as e:
-#         return jsonify({'error': f'Validation error: {str(e)}'}), 400
-#     except Exception as e:
-#         logger.error(f"Error updating product: {str(e)}")
-#         return jsonify({'error': 'Internal server error'}), 500
+                # Handle user_id reference safely
+                if hasattr(product, 'user_id') and product.user_id:
+                    # If user_id is a reference object, get its id
+                    if hasattr(product.user_id, 'id'):
+                        product_data["user_id"] = str(product.user_id.id)
+                    else:
+                        # If user_id is already an ObjectId
+                        product_data["user_id"] = str(product.user_id)
+                else:
+                    product_data["user_id"] = "unknown"
+                
+                # Add seller information if available
+                seller_info = {
+                    'name': 'Unknown',
+                    'phone': 'N/A',
+                    'email': 'N/A'
+                }
+                
+                if hasattr(product, 'user_id') and product.user_id:
+                    if hasattr(product.user_id, 'name'):
+                        seller_info['name'] = product.user_id.name or 'Unknown'
+                    if hasattr(product.user_id, 'phone_number'):
+                        seller_info['phone'] = product.user_id.phone_number or 'N/A'
+                    if hasattr(product.user_id, 'email'):
+                        seller_info['email'] = product.user_id.email or 'N/A'
+                
+                product_data["seller"] = seller_info
+                product_list.append(product_data)
+                
+            except Exception as product_error:
+                # Log the error but continue with other products
+                print(f"Error processing product {product.id}: {str(product_error)}")
+                continue
 
-# @products_bp.route('/<product_id>', methods=['DELETE'])
-# @token_required
-# def delete_product(product_id):
-#     """Delete a specific product (only if owned by current user)"""
-#     try:
-#         # Get current user from token
-#         current_user_id = request.current_user['user_id']
-#         user = User.objects(id=current_user_id).first()
-        
-#         if not user:
-#             return jsonify({'error': 'User not found'}), 404
-        
-#         # Find product
-#         product = Product.objects(id=product_id, user_id=user).first()
-        
-#         if not product:
-#             return jsonify({'error': 'Product not found or not owned by user'}), 404
-        
-#         # Store product info for response
-#         product_name = product.name
-        
-#         # Delete product
-#         product.delete()
-        
-#         return jsonify({
-#             'message': f'Product "{product_name}" deleted successfully'
-#         }), 200
-        
-#     except DoesNotExist:
-#         return jsonify({'error': 'Product not found'}), 404
-#     except Exception as e:
-#         logger.error(f"Error deleting product: {str(e)}")
-#         return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({
+            "success": True,
+            "products": product_list
+        }), 200
 
-# @products_bp.route('/<product_id>/toggle-status', methods=['PATCH'])
-# @token_required
-# def toggle_product_status(product_id):
-#     """Toggle product sold status (mark as sold/unsold)"""
-#     try:
-#         # Get current user from token
-#         current_user_id = request.current_user['user_id']
-#         user = User.objects(id=current_user_id).first()
-        
-#         if not user:
-#             return jsonify({'error': 'User not found'}), 404
-        
-#         # Find product
-#         product = Product.objects(id=product_id, user_id=user).first()
-        
-#         if not product:
-#             return jsonify({'error': 'Product not found or not owned by user'}), 404
-        
-#         # Toggle sold status
-#         product.is_sold = not product.is_sold
-#         product.updated_at = datetime.utcnow()
-#         product.save()
-        
-#         status = "sold" if product.is_sold else "active"
-        
-#         return jsonify({
-#             'message': f'Product marked as {status}',
-#             'product': {
-#                 'id': str(product.id),
-#                 'name': product.name,
-#                 'is_sold': product.is_sold,
-#                 'updated_at': product.updated_at.isoformat()
-#             }
-#         }), 200
-        
-#     except DoesNotExist:
-#         return jsonify({'error': 'Product not found'}), 404
-#     except Exception as e:
-#         logger.error(f"Error toggling product status: {str(e)}")
-#         return jsonify({'error': 'Internal server error'}), 500
+    except Exception as e:
+        print(f"Error in get_all_products: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to fetch products", 
+            "details": str(e)
+        }), 500

@@ -119,8 +119,15 @@ const handleFileChange = async (event) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col">
       {/* Top bar */}
       <div className="flex items-center justify-between p-6 border-b border-white/20 bg-white/10 backdrop-blur-xl">
-        <div className="h-10 w-24 bg-gray-300 rounded-md flex items-center justify-center">
-          <span className="text-gray-500 font-semibold">Logo</span>
+        <div className="h-10 w-24 bg-transparent items-center justify-center">
+          <Link to="/dashboard" aria-label="Go to Dashboard">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="h-12 w-auto transition-transform hover:scale-110"
+              loading="lazy"
+            />
+          </Link>
         </div>
         <div className="flex items-center gap-3">
           <Link

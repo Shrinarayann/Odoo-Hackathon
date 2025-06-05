@@ -5,25 +5,42 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import axios from 'axios';
 
-const Profile = ({
-  user = {
-    displayName: 'Guest',
-    email: 'guest@example.com',
-    profilePicture: '',
-    location: 'Chennai',
-    rating: 4.3,
-  },
-  onClose,
-  onSave,
-}) => {
+const Profile = ({ onClose, onSave }) => {
+  const [user, setUser] = useState(null);
+  const [formUser, setFormUser] = useState({});
   const [isEditing, setIsEditing] = useState(false);
-  const [formUser, setFormUser] = useState(user);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [profilePicFile, setProfilePicFile] = useState(null);
-  const [authToken, setAuthToken] = useState(localStorage.getItem('authToken') || '');
+  const authToken = localStorage.getItem('authToken') || '';
   const wrapperRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await axios.get('http://localhost:8080/api/v1/auth/profile', {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        const data = res.data.user;
+
+        setUser(data);
+        setFormUser({
+          displayName: data.name || 'User',
+          email: data.email,
+          profilePicture: data.profilePicture || '',
+          location: data.location || 'Chennai',
+          rating: data.rating || 4.0,
+        });
+      } catch (err) {
+        console.error('Failed to fetch profile:', err);
+        alert('Failed to load profile');
+      }
+    };
+    fetchProfile();
+  }, [authToken]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -40,7 +57,7 @@ const Profile = ({
     try {
       const res = await axios.post(
         'http://localhost:8080/v1/auth/verify-password',
-        { email: user.email, password: oldPassword },
+        { email: formUser.email, password: oldPassword },
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
 
@@ -92,6 +109,8 @@ const Profile = ({
     }));
   };
 
+  if (!user) return null;
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4 py-10">
       <div
@@ -133,7 +152,7 @@ const Profile = ({
           <div className="text-white text-center sm:text-left">
             <h2 className="text-3xl font-bold">{formUser.displayName}</h2>
             <p className="text-indigo-300">{formUser.email}</p>
-            <p className="text-indigo-400 mt-1">Rating: {formUser.rating} / 5</p>
+            <p className="text-indigo-400 mt-1">Eco Rating: {formUser.rating} / 5</p>
           </div>
         </div>
 
@@ -157,7 +176,6 @@ const Profile = ({
               <option value="Mumbai">Mumbai</option>
               <option value="Delhi">Delhi</option>
               <option value="Bangalore">Bangalore</option>
-              {/* Add more as needed */}
             </select>
             <Input
               type="password"

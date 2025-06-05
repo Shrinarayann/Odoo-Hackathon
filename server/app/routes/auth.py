@@ -404,7 +404,7 @@ def get_profile():
     """Get current user profile"""
     try:
         current_user = request.current_user
-        
+        print(current_user)
         # Fetch user data from database
         user = User.objects(id=current_user['user_id']).first()
         if not user:
@@ -415,6 +415,8 @@ def get_profile():
                 'id': str(user.id),
                 'email': user.email,
                 'name': user.name,
+                'phone_number':user.phone_number,
+                'rating':user.ratings,
                 'created_at': user.created_at.isoformat(),
                 'updated_at': user.updated_at.isoformat()
             }

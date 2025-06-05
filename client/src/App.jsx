@@ -15,6 +15,9 @@ import VerifyMobile from './components/auth/VerifyMobile';
 import Auctions from './components/dashboard/Auctions';
 import Contact from './components/dashboard/Contact';
 import About from './components/dashboard/About';
+import AuctionPage from './components/dashboard/AuctionPage';
+import AuctionBuy from './components/dashboard/AuctionBuy';
+import AuctionSell from './components/dashboard/AuctionSell';
 
 
 
@@ -39,6 +42,9 @@ function App() {
         <Route path="/dashboard/auction" element={<Auctions />} />
         <Route path="/dashboard/about" element={<About />} />
         <Route path="/dashboard/contact" element={<Contact />} />
+        <Route path="/dashboard/auctionpage" element={<AuctionPage />} />
+        <Route path="/dashboard/auctionbuy" element={<AuctionBuy />} />
+        <Route path="/dashboard/auctionsell" element={<AuctionSell />} />
       </Routes>
     </Router>
   );

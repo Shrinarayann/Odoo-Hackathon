@@ -112,9 +112,17 @@ const ProductsPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-10">
       {/* Top Bar */}
       <div className="flex items-center justify-between w-full max-w-6xl mx-auto mb-6 px-4">
-        <div className="h-8 w-20 bg-gray-300 rounded-md flex items-center justify-center">
-          <span className="text-gray-500 text-sm">Logo</span>
-        </div>
+        <div
+              className="h-10 w-auto cursor-pointer"
+              onClick={() => navigate('/dashboard')}
+            >
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="h-10 w-auto object-contain"
+              />
+            </div>
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/dashboard/cart')}
