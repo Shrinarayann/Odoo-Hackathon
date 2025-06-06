@@ -258,7 +258,7 @@ def place_bid():
 #         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
 
-from flask import jsonify # Ensure jsonify is imported
+#from flask import jsonify # Ensure jsonify is imported
 # Assuming auction_bp, AuctionProduct, logger, DoesNotExist, ValidationError are defined/imported
 # from mongoengine.errors import DoesNotExist, ValidationError # if using mongoengine
 # import logging # Example: logger = logging.getLogger(__name__)
@@ -266,41 +266,114 @@ from flask import jsonify # Ensure jsonify is imported
 # If logger is not configured, replace logger.error with print for debugging
 # For example, if you have: from .. import logger
 
-@auction_bp.route('/products', methods=['GET']) # Changed route from /product/<product_id_str>
-def get_all_auction_products(): # Renamed function and removed product_id_str parameter
-    """Get all active auction products."""
+# @auction_bp.route('/products', methods=['GET']) # Changed route from /product/<product_id_str>
+# def get_all_auction_products(): # Renamed function and removed product_id_str parameter
+#     """Get all active auction products."""
+#     try:
+#         # Fetch all products. Filtering for "active" status as per example and typical use case.
+#         # If you need all products regardless of status, use AuctionProduct.objects.all()
+#         all_products = AuctionProduct.objects.filter(status="active")
+
+#         products_data_list = []
+#         for product in all_products:
+#             # Safely access brand and model, as they might not be present on all documents
+#             brand = getattr(product, 'brand', None)
+#             model = getattr(product, 'model', None)
+
+#             # Safely access .id attribute for reference fields
+#             highest_bidder_id_str = None
+#             if product.highest_bidder_id and hasattr(product.highest_bidder_id, 'id'):
+#                 highest_bidder_id_str = str(product.highest_bidder_id.id)
+
+#             seller_id_str = None
+#             if product.seller_id and hasattr(product.seller_id, 'id'):
+#                 seller_id_str = str(product.seller_id.id)
+
+#             bid_history_data = []
+#             for b in product.bid_history:
+#                 bidder_id_str = None
+#                 if b.bidder_id and hasattr(b.bidder_id, 'id'):
+#                     bidder_id_str = str(b.bidder_id.id)
+#                 bid_history_data.append({
+#                     'bidder_id': bidder_id_str,
+#                     'bidder_name': b.bidder_name,
+#                     'bid_amount': b.bid_amount,
+#                     'timestamp': b.timestamp.isoformat()
+#                 })
+
+#             product_data = {
+#                 '_id': str(product.id),
+#                 'product_name': product.product_name,
+#                 'product_description': product.product_description,
+#                 'category': product.category,
+#                 'condition': product.condition,
+#                 'seller_location': product.seller_location,
+#                 'brand': brand,
+#                 'model': model,
+#                 'image_url': product.image_url,
+#                 'base_price': product.base_price,
+#                 'current_highest_bid': product.current_highest_bid,
+#                 'highest_bidder_id': highest_bidder_id_str,
+#                 'highest_bidder': product.highest_bidder_name, # Corresponds to 'highest_bidder_name' in DB model
+#                 'auction_start_time': product.auction_start_time.isoformat(),
+#                 'auction_end_time': product.auction_end_time.isoformat(),
+#                 'bid_history': bid_history_data,
+#                 'status': product.status,
+#                 'seller_id': seller_id_str,
+#                 'seller_name': product.seller_name,
+#                 'created_at': product.created_at.isoformat(),
+#                 # 'updated_at': product.updated_at.isoformat() # Add if needed
+#             }
+#             products_data_list.append(product_data)
+
+#         return jsonify({'success': True, 'products': products_data_list}), 200
+
+#     except Exception as e:
+#         # Replace with your actual logger if available
+#         print(f"Error fetching all auction products: {str(e)}")
+#         # logger.error(f"Error fetching all auction products: {str(e)}")
+#         return jsonify({'success': False, 'message': 'An error occurred while fetching products'}), 500
+
+
+# from flask import Blueprint, request, jsonify
+# from app.models.user import User
+# from app.models.auction_product import AuctionProduct
+# from app.utils.jwt import token_required
+# from mongoengine import DoesNotExist, ValidationError
+# from datetime import datetime
+# import logging
+
+
+
+
+@auction_bp.route('/products', methods=['GET'])
+def get_all_auction_products():
+    """
+    Get all auction products and update status of expired ones.
+    """
     try:
-        # Fetch all products. Filtering for "active" status as per example and typical use case.
-        # If you need all products regardless of status, use AuctionProduct.objects.all()
-        all_products = AuctionProduct.objects.filter(status="active")
+        # --- NEW LOGIC: Update expired auctions before fetching ---
+        now = datetime.utcnow()
+        # Find auctions that are still marked as 'active' but their end time has passed.
+        expired_auctions = AuctionProduct.objects.filter(status="active", auction_end_time__lte=now)
+
+        for product in expired_auctions:
+            # Check if there were any bids other than the initial base price setting.
+            # A bid history length of 0 means no one bid.
+            if len(product.bid_history) > 0:
+                product.status = 'ended_sold'
+            else:
+                product.status = 'ended_no_bids'
+            product.save()
+            logger.info(f"Updated status for expired product {product.id} to {product.status}")
+        # --- END OF NEW LOGIC ---
+
+        # Fetch all products to send to the frontend (you might still want to show ended auctions)
+        all_products = AuctionProduct.objects.all().order_by('auction_end_time')
 
         products_data_list = []
         for product in all_products:
-            # Safely access brand and model, as they might not be present on all documents
-            brand = getattr(product, 'brand', None)
-            model = getattr(product, 'model', None)
-
-            # Safely access .id attribute for reference fields
-            highest_bidder_id_str = None
-            if product.highest_bidder_id and hasattr(product.highest_bidder_id, 'id'):
-                highest_bidder_id_str = str(product.highest_bidder_id.id)
-
-            seller_id_str = None
-            if product.seller_id and hasattr(product.seller_id, 'id'):
-                seller_id_str = str(product.seller_id.id)
-
-            bid_history_data = []
-            for b in product.bid_history:
-                bidder_id_str = None
-                if b.bidder_id and hasattr(b.bidder_id, 'id'):
-                    bidder_id_str = str(b.bidder_id.id)
-                bid_history_data.append({
-                    'bidder_id': bidder_id_str,
-                    'bidder_name': b.bidder_name,
-                    'bid_amount': b.bid_amount,
-                    'timestamp': b.timestamp.isoformat()
-                })
-
+            # This part of your code was already good, just ensuring it's complete.
             product_data = {
                 '_id': str(product.id),
                 'product_name': product.product_name,
@@ -308,28 +381,29 @@ def get_all_auction_products(): # Renamed function and removed product_id_str pa
                 'category': product.category,
                 'condition': product.condition,
                 'seller_location': product.seller_location,
-                'brand': brand,
-                'model': model,
+                'brand': getattr(product, 'brand', None),
+                'model': getattr(product, 'model', None),
                 'image_url': product.image_url,
                 'base_price': product.base_price,
                 'current_highest_bid': product.current_highest_bid,
-                'highest_bidder_id': highest_bidder_id_str,
-                'highest_bidder': product.highest_bidder_name, # Corresponds to 'highest_bidder_name' in DB model
+                'highest_bidder_id': str(product.highest_bidder_id.id) if product.highest_bidder_id else None,
+                'highest_bidder': product.highest_bidder_name,
                 'auction_start_time': product.auction_start_time.isoformat(),
                 'auction_end_time': product.auction_end_time.isoformat(),
-                'bid_history': bid_history_data,
+                'bid_history': [{
+                    'bidder_name': b.bidder_name,
+                    'bid_amount': b.bid_amount,
+                    'timestamp': b.timestamp.isoformat()
+                } for b in product.bid_history],
                 'status': product.status,
-                'seller_id': seller_id_str,
+                'seller_id': str(product.seller_id.id),
                 'seller_name': product.seller_name,
                 'created_at': product.created_at.isoformat(),
-                # 'updated_at': product.updated_at.isoformat() # Add if needed
             }
             products_data_list.append(product_data)
 
         return jsonify({'success': True, 'products': products_data_list}), 200
 
     except Exception as e:
-        # Replace with your actual logger if available
-        print(f"Error fetching all auction products: {str(e)}")
-        # logger.error(f"Error fetching all auction products: {str(e)}")
+        logger.error(f"Error fetching all auction products: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'An error occurred while fetching products'}), 500
